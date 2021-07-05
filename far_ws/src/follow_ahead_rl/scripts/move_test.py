@@ -39,7 +39,7 @@ if __name__ == '__main__':
             # print(state)
 
 
-            sleep(1)
+            sleep(0.25)
 
             # if done:
             #     break
