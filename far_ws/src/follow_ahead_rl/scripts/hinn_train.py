@@ -5,26 +5,29 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import gym
-import gym_gazeboros_ac
+# import gym
+# import gym_gazeboros_ac
 
 from HumanIntentNetwork import HumanIntentNetwork
 
 import catboost
 from sklearn.metrics import mean_squared_error
+import numpy as np
 
-from sklearn.ensemble import RandomForestRegressor
+
+
 from sklearn.model_selection import train_test_split, GridSearchCV
-
-import pickle
+import pickle, os
 
 
 TRAIN_MLP = False 
 EPOCHS = 550 # 400
 BATCH_SIZE = 64
 
-TRAIN_CATBOOST = False
+TRAIN_CATBOOST = True
 TRAIN_RFR = True
+TRAIN_POLY = True
+
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -33,8 +36,8 @@ if __name__ == '__main__':
     state_dim = 43
     action_dim = 2
 
-    save_local_1 = './model_weights/HumanIntentNetwork/list_of_human_state.csv'
-    save_local_2 = './model_weights/HumanIntentNetwork/list_of_human_state_next.csv'
+    save_local_1 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state.csv'
+    save_local_2 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state_next.csv'
 
     list_of_human_state = pd.read_csv(save_local_1).values.tolist()
     list_of_human_state_next = pd.read_csv(save_local_2).values.tolist()
@@ -93,7 +96,7 @@ if __name__ == '__main__':
         train_dataset = catboost.Pool(X_train, y_train) 
         eval_dataset = catboost.Pool(X_test, y_test)
 
-        CBR = catboost.CatBoostRegressor(iterations = 5000, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True, early_stopping_rounds=500) 
+        CBR = catboost.CatBoostRegressor(iterations = 3000, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True) # , early_stopping_rounds=500
         CBR.load_model(PATH)
 
         # #### fit hardcoded model #####
@@ -101,7 +104,7 @@ if __name__ == '__main__':
         y_pred = CBR.predict(X_test) # eval set. eval & test are the same
 
         mse = mean_squared_error(y_test, y_pred, squared=False)
-        print(f'MSE is {mse:.6f}')
+        print(f'MSE for CatBoostRegressor is {mse:.6f}\n')
 
         CBR.save_model(PATH)
 
@@ -119,34 +122,88 @@ if __name__ == '__main__':
         # print(grid_search_results['params'])
 
     if TRAIN_RFR:
+        from sklearn.ensemble import RandomForestRegressor
+
         PATH = './model_weights/HumanIntentNetwork/RandomForestRegressor'
-        X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.00001, random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.1, random_state=0)
         
-        # if os.path.isfile(PATH):
-        #   pass
+        if False: # os.path.isfile(PATH):
+            print(f'RandomForestRegressor save found. Skipping training...')
+            regr = pickle.load(open(PATH, 'rb'))
+            print(regr.best_params_)
+        else:
+            print(f'RandomForestRegressor save not found. Training...')
 
-        # #### fit hardcoded model #####
-        # regr = pickle.load(open(PATH, 'rb'))
-        # regr = RandomForestRegressor(n_estimators=100, max_depth=100, max_features=None, n_jobs=4, random_state=0)
-        # regr.fit(X_train, y_train)
+            #### fit hardcoded model #####
+            
+            regr = RandomForestRegressor(n_estimators=100, max_depth=100, max_features=None, n_jobs=4, random_state=0)
+            regr.fit(X_train, y_train)
 
-        # y_pred = regr.predict(X_test)
-        # mse = mean_squared_error(y_test, y_pred)
-        # print(f'MSE is {mse:.6f}')
+            y_pred = regr.predict(X_test)
+            mse = mean_squared_error(y_test, y_pred)
+            print(f'MSE for RandomForestRegressor is {mse:.6f}\n')
 
-        # pickle.dump(regr, open(PATH, 'wb'))
+            pickle.dump(regr, open(PATH, 'wb'))
 
         # #### grid search #####
-        regr = RandomForestRegressor()
-        random_grid = {'n_estimators': [500], #, 500, 1000, 1500],
-                        'max_features': ['auto', None],
-                        'max_depth': [None, 100],
-                        'min_samples_split': [2, 3],
-                        'min_samples_leaf': [3, 4],
-                        'bootstrap': [True]}
+        # regr = RandomForestRegressor()
+        # random_grid = {'n_estimators': [500], #, 500, 1000, 1500],
+        #                 'max_features': ['auto', None],
+        #                 'max_depth': [None, 100],
+        #                 'min_samples_split': [2, 3],
+        #                 'min_samples_leaf': [3, 4],
+        #                 'bootstrap': [True]}
         # {'bootstrap': True, 'max_depth': None, 'max_features': 'auto', 'min_samples_leaf': 4, 'min_samples_split': 2, 'n_estimators': 100}
         # {'bootstrap': True, 'max_depth': None, 'max_features': 'auto', 'min_samples_leaf': 3, 'min_samples_split': 3, 'n_estimators': 100}
-        rf = RandomForestRegressor()
-        rf_random = GridSearchCV(estimator = regr, param_grid = random_grid, cv = 2, verbose=2, n_jobs = -1)
-        rf_random.fit(X_train, y_train)
-        print(rf_random.best_params_)
+        # rf_random = GridSearchCV(estimator = regr, param_grid = random_grid, cv = 2, verbose=2, n_jobs = -1)
+        # rf_random.fit(X_train, y_train)
+        # print(rf_random.best_params_)
+
+    if TRAIN_POLY:
+        from sklearn.linear_model import LinearRegression
+        from sklearn.preprocessing import PolynomialFeatures
+
+        PATH = './model_weights/HumanIntentNetwork/PolynomialRegressor'
+        X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.1, random_state=0)
+        
+        if False: # os.path.isfile(PATH):
+            print(f'PolynomialRegressor save found. Skipping training...')
+            regr = pickle.load(open(PATH, 'rb'))
+            print(regr.best_params_)
+        else:
+            print(f'PolynomialRegressor save not found. Training...')
+
+            #### fit hardcoded model #####
+            # degree=1  | MSE is 0.124031
+            # degree=2  | MSE is 0.118514
+            # degree=3  | MSE is 0.134984  |  5000 random features
+
+            poly_reg = PolynomialFeatures(degree=2)
+            X_poly_train = poly_reg.fit_transform(X_train)
+            print(f'X_poly_train.shape {X_poly_train.shape}')
+            # X_poly_train = np.array(X_poly_train)
+            # size = X_poly_train.shape[1]
+            # idx = np.random.random_integers(0, size, 5000)
+            # X_poly_train = X_poly_train[:, idx]
+            # print(f'X_poly_train {X_poly_train.shape}')
+
+            regr = LinearRegression()
+            regr.fit(X_poly_train, y_train)
+
+            y_pred = regr.predict(poly_reg.transform(X_test)) # [:, idx]
+            mse = mean_squared_error(y_test, y_pred)
+            print(f'MSE for PolynomialRegressor is {mse:.6f}\n')
+
+            # pickle.dump(regr, open(PATH, 'wb'))
+
+        # #### grid search #####
+        # regr = RandomForestRegressor()
+        # random_grid = {'n_estimators': [500], #, 500, 1000, 1500],
+        #                 'max_features': ['auto', None],
+        #                 'max_depth': [None, 100],
+        #                 'min_samples_split': [2, 3],
+        #                 'min_samples_leaf': [3, 4],
+        #                 'bootstrap': [True]}
+        # rf_random = GridSearchCV(estimator = regr, param_grid = random_grid, cv = 2, verbose=2, n_jobs = -1)
+        # rf_random.fit(X_train, y_train)
+        # print(rf_random.best_params_)

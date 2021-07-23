@@ -24,9 +24,8 @@ if __name__ == '__main__':
 
 
     def compute_action_set(orientation_rad):
-
         pi = np.pi
-        numb_tickers = 8
+        numb_tickers = 16
         phase_shift = 2*pi/numb_tickers
 
         velocity_ratios = [1/(1.6*1.6), 1/1.6, 1] # 1.66 or 1.625 or 1.6
@@ -41,7 +40,7 @@ if __name__ == '__main__':
                
                 # (velocity_ratio*np.cos(angle), velocity_ratio*np.sin(angle))
                 action_set.append([velocity_ratio, angle]) # [linear_velocity, angular_velocity]
-                angle -= phase_shift
+                angle += phase_shift # TODO was angle += phase_shift
  
         return action_set # 10 actions
 
@@ -52,6 +51,7 @@ if __name__ == '__main__':
     env = gym.make(ENV_NAME).unwrapped
     env.set_agent(0)
     action = [0.5, 0] # linear_velocity, angular_velocity. from 0 to 1, a % of the max_linear_vel (0.8) & max_angular_vel (1.8)
+    # while False:
     while True:
         # env.set_person_mode(mode % 5)
         mode += 1
@@ -61,7 +61,9 @@ if __name__ == '__main__':
 
         c = 0
         for i in range(1000000):# EPISODE_LEN
-            
+            c = c+1
+            c = c % 10 
+            print(f'c is {c}')
             state, reward, done, _ = env.step(action)
             # dx_dt, dy_dt, da_dt = env.get_system_velocities() # best to see code. (dx_dt, dy_dt, da_dt)
             # print(f'X: {dx_dt} | Y: {dy_dt} | Angular V: {da_dt}')
@@ -70,7 +72,7 @@ if __name__ == '__main__':
             # person_state = env.get_person_pos()  # [xy[0], xy[1], theta] where theta is orientation
             # print(f'Person state is {person_state}')
 
-            print(f'State is {state}') # shape is 47
+            # print(f'State is {state}') # shape is 47
 
             print(f"Robot state \n\t position is {env.robot.state_['position']} \n\t orientation is {env.robot.state_['orientation']} \n\t velocity lin & angular is {env.robot.state_['velocity']}")
             print(f'Person state\n\t position is {env.person.state_["position"]}\n\t orientation is {env.person.state_["orientation"]}\n\t velocity lin & angular is {env.person.state_["velocity"]}')
@@ -89,13 +91,13 @@ if __name__ == '__main__':
 
             action_set = compute_action_set(orientation_rad)
             # print(f'action_set {action_set}')
-            action = action_set[7]
+            action = action_set[c]
             sleep(0.25)
-            sleep(2.00)
+            # sleep(2.00)
             # if done:
             #     break
 
-            c += 1
+            # c += 1
     
     print("END")
 

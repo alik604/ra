@@ -190,7 +190,12 @@ class Robot():
         self.action_client_.cancel_all_goals()
         self.stop_robot()
 
-    def movebase_client_goal(self, goal_pos, goal_orientation):
+    def movebase_client_goal(self, goal_pos, goal_orientation): # TODO relative to TB odo frame
+
+        # /move_base_node_0/TebLocalPlannerROS/local_plan
+
+
+
        # Creates a new goal with the MoveBaseGoal constructor
         move_base_goal = MoveBaseGoal()
         move_base_goal.target_pose.header.frame_id = "tb3_{}/odom".format(self.agent_num)
@@ -623,8 +628,7 @@ class GazeborosEnv(gym.Env):
             '/gazebo/set_model_state', SetModelState)
         date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
         self.agent_num = agent_num
-        self.obstacle_pub_ = rospy.Publisher(
-            '/move_base_node_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
+        self.obstacle_pub_ = rospy.Publisher('/move_base_node_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1) # TODO this is the pos of the human 
         self.create_robots()
 
         self.path = {}

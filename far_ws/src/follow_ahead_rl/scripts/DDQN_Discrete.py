@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
     def compute_action_set(orientation_rad):
         pi = np.pi
-        numb_tickers = 8
+        numb_tickers = 16
         phase_shift = 2*pi/numb_tickers
 
         velocity_ratios = [1/(1.6*1.6), 1/1.6, 1] # 1.66 or 1.625 or 1.6
@@ -176,7 +176,7 @@ if __name__ == '__main__':
                
                 # (velocity_ratio*np.cos(angle), velocity_ratio*np.sin(angle))
                 action_set.append([velocity_ratio, angle]) # [linear_velocity, angular_velocity]
-                angle -= phase_shift
+                angle += phase_shift # TODO was angle += phase_shift
  
         return action_set # 10 actions
 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     # agent = Agent(gamma=0.99, epsilon=0.35, batch_size=64, n_actions=n_actions, eps_end=0.01,
     #           input_dims=[observation_shape], lr=0.001, eps_dec=5e-4, ALIs_over_training=1)
 
-    agent = Agent(gamma=0.99, epsilon=0.35, batch_size=512, n_actions=n_actions, eps_end=0.01,
+    agent = Agent(gamma=0.99, epsilon=0.3, batch_size=128, n_actions=n_actions, eps_end=0.01,
               input_dims=[observation_shape], lr=0.01, eps_dec=5e-6*1.0, ALIs_over_training=2) # changed from eps_dec=5e-4
     agent.load_models()
 
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         #     best_score = score
         #     agent.save_models()
 
-        if i % 100 == 0:
+        if i % 50 == 0:
             agent.save_models() # TODO necessary evil
         
         # if i % 1 == 0:
