@@ -52,7 +52,7 @@
     <param name="controller_frequency" value="20.0" />
     <param name="controller_patience" value="15.0" />
     <param name="recovery_behavior_enabled" value="true" />
-    <remap from="/cmd_vel" to="/tb3_$(arg agent_num)/jackal_velocity_controller/cmd_vel" />
+    <remap from="/cmd_vel" to="/tb3_$(arg agent_num)/jackal_velocity_controller/cmd_vel______________________________________________________________________________________________________________________________" />
     <remap from="/move_base_simple/goal" to="/move_base_simple/goal_$(arg agent_num)" />
     <remap from="/move_base/cancel" to="/move_base_$(arg agent_num)/cancel" />
     <remap from="/move_base/feedback" to="/move_base_$(arg agent_num)/feedback" />

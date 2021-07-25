@@ -1,26 +1,25 @@
 #!/usr/bin/env python
-
+# import dynamic_window_approach as dwa
 from datetime import datetime
-
-import copy
+ 
 import traceback
-
+import pickle
 import os
-import subprocess
 import time
-import signal
-
-#from cv_bridge import CvBridge
-
-
-import gym
 import math
 import random
-# u
+import threading
+import _thread
+
+#from cv_bridge import CvBridge # for visualize_observation()
+
+import rospy
+import gym
+from gym.utils import seeding
+
 import numpy as np
 import cv2 as cv
 
-import rospy
 # Brings in the SimpleActionClient
 import actionlib
 # Brings in the .action file and messages used by the move base action
@@ -42,20 +41,10 @@ from geometry_msgs.msg import Twist
 
 from gazebo_msgs.srv import SetModelState
 
-import threading
-
-from gym.utils import seeding
-
-import _thread
-
 from squaternion import Quaternion
-
 from simple_pid import PID
 
-import pickle
-
 import logging
-
 logger = logging.getLogger(__name__)
 
 
@@ -191,10 +180,7 @@ class Robot():
         self.stop_robot()
 
     def movebase_client_goal(self, goal_pos, goal_orientation): # TODO relative to TB odo frame
-
         # /move_base_node_0/TebLocalPlannerROS/local_plan
-
-
 
        # Creates a new goal with the MoveBaseGoal constructor
         move_base_goal = MoveBaseGoal()
@@ -671,7 +657,27 @@ class GazeborosEnv(gym.Env):
     def model_states_cb(self,  states_msg):
         """sets the new state
 
-        """        
+        """
+        
+        # # TODO DWA
+        # # Hardcoded as circle
+        # ros_config = dict(max_speed=self.max_linear_vel, min_speed=0, max_yaw_rate=self.max_angular_vel,
+        #     max_accel = 0.2, max_delta_yaw_rate = 0.7,
+        #     v_resolution = 0.01, yaw_rate_resolution = 0.1 * math.pi / 180.0,
+        #     dt = 0.1, predict_time = 3.0,
+        #     to_goal_cost_gain = 0.15, speed_cost_gain = 1.0, obstacle_cost_gain = 1.0,
+        #     robot_stuck_flag_cons = 0.001, robot_radius = 1.02) # ob not set
+        # config = dwa.Config(ros_config) 
+
+        # # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)] # omega is angular_velocity
+        # x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
+        # # goal position [x(m), y(m)]
+        # goal = np.array([gx, gy])
+
+
+
+
+
         for model_idx in range(len(states_msg.name)):
             found = False
             for robot in [self.robot, self.person]:
@@ -1426,11 +1432,11 @@ class GazeborosEnv(gym.Env):
             episode_over = True
         if self.fallen:
             episode_over = True # TODO_changed
-            rospy.loginfo('fallen') #TODO
+            rospy.loginfo('fallen') 
 
         reward = min(max(reward, -1), 1)
-        if self.agent_num == 0: # TODO
-            # rospy.loginfo("action {} reward {}".format(action, reward))
+        if self.agent_num == 0: 
+            # rospy.loginfo("action {} reward {}".format(action, reward)) # TODO
             pass
         if episode_over:
             self.person.reset = True
@@ -1507,7 +1513,6 @@ class GazeborosEnv(gym.Env):
             # rospy.loginfo("got the lock") #TODO
             not_init = True
             try:
-
                 if self.is_evaluation_:
                     if self.log_file is not None:
                         pickle.dump({"person_history": self.person.log_history, "robot_history": self.robot.log_history}, self.log_file)
