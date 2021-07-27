@@ -37,7 +37,7 @@ from rosgraph_msgs.msg import Clock
 from costmap_converter.msg import ObstacleArrayMsg
 from costmap_converter.msg import ObstacleMsg
 from gazebo_msgs.msg import ModelStates
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseStamped # PoseStamped added
 
 from gazebo_msgs.srv import SetModelState
 
@@ -603,6 +603,55 @@ class GazeborosEnv(gym.Env):
 
     def use_test_setting(self):
         self.is_use_test_setting = True
+    
+    
+    def set_goal(self): # TODO_added
+        """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
+            seq: 0
+            stamp:
+                secs: 0
+                nsecs: 0
+            frame_id: 'tb3_0/base_link'
+            pose:
+            position:
+                x: 10.0
+                y: 10.0
+                z: 0.0
+            orientation:
+                x: 0.0
+                y: 0.0
+                z: 0.0
+                w: 1.0"
+
+            I might need to use /base_link as the frame 
+        """        
+        self.goal_target = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1)
+        
+        obj = PoseStamped()
+        obj.header.frame_id = 'tb3_0/base_link'
+        # obj.header.stamp = rospy.Time.now()
+        obj.pose.position.x = 10
+        obj.pose.position.y = 10
+        obj.pose.position.z = 10
+        obj.pose.orientation.x = 0.0
+        obj.pose.orientation.y = 1.0
+        obj.pose.orientation.z = 1.0
+        obj.pose.orientation.w = 0.0
+
+        # pose = {"pos": (xy[0], xy[1]), "orientation": 0} # test outside
+        # quaternion_rotation = Quaternion.from_euler(0, pose["orientation"], 0)
+        # set_model_msg.pose.orientation.x = quaternion_rotation[3]
+        # set_model_msg.pose.orientation.y = quaternion_rotation[1]
+        # set_model_msg.pose.orientation.z = quaternion_rotation[2]
+        # set_model_msg.pose.orientation.w = quaternion_rotation[0]
+
+
+        self.goal_target.publish(obj)
+
+        rospy.loginfo(f"PoseStamped() is  {obj}")
+
+        pass 
+
 
     def set_agent(self, agent_num):
         try:

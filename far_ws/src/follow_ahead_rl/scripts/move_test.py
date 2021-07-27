@@ -80,7 +80,7 @@ if __name__ == '__main__':
             rel_pos = env.get_relative_position(env.person.get_pos(), env.robot)
             distance = np.hypot(rel_pos[0], rel_pos[1])
 
-            print(f'get relative position. person.pos()-robot.pos(): {rel_pos} | with a distance of distance')
+            print(f'get relative position. person.pos()-robot.pos(): {rel_pos} | with a distance of {distance}')
 
 
             rel_heading = env.get_relative_heading_position(env.robot, env.person)[1]
