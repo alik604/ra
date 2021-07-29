@@ -8,8 +8,8 @@ By Emma Hughson, Kai Ho Anthony Cheung, and Khizr Ali Pardhan. An expansion upon
 Branch: *Purpose*  
 * Main: {Team} This branch contains the working environment designated for testing the HINN and trajectory planner solution.  For evaluation us the hinn_dh_eval.
 * World Models: {Emma & K. Ali} This branch contains the working environment designated for testing World Model implementation.
-* Development: {K. Ali} Everything important in merged into **Main** 
-* Monte Carlo: {Emma} Everything important in merged into **World Models**
+* Development: {K. Ali} Everything important is merged into **Main** 
+* Monte Carlo: {Emma} Everything important is merged into **World Models**
 * Other Branches: {Anthony} Are for the ROS environment. All work is merged into **Main**
 
 
