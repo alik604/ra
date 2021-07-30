@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # import dynamic_window_approach as dwa
 from datetime import datetime
- 
+from time import sleep
+
 import traceback
 import pickle
 import os
@@ -10,6 +11,8 @@ import math
 import random
 import threading
 import _thread
+import queue
+
 
 #from cv_bridge import CvBridge # for visualize_observation()
 
@@ -38,11 +41,14 @@ from costmap_converter.msg import ObstacleArrayMsg
 from costmap_converter.msg import ObstacleMsg
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseStamped # PoseStamped added
+from nav_msgs.msg import Path
 
 from gazebo_msgs.srv import SetModelState
 
 from squaternion import Quaternion
 from simple_pid import PID
+
+import matplotlib.pyplot as plt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -604,8 +610,57 @@ class GazeborosEnv(gym.Env):
     def use_test_setting(self):
         self.is_use_test_setting = True
     
-    
-    def set_goal(self, orientation=1, x=40 ,y=40, z=0): # TODO_added
+    def build_action_discrete_action_space(self, numb_tickers=2, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+        # thread = threading.Thread(target=self.set_goal, args=(1, 0, 0))
+        # thread.daemon = False
+        # thread.start()   
+        # thread.join()
+        
+        # while self.queue_of_x.empty(): # wont exit
+        #     sleep(5)
+        #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
+        self.queue_of_x = queue.Queue()
+        self.queue_of_y = queue.Queue()
+        master_list_x = []
+        master_list_y = []
+        phase_shift = 2*np.pi/numb_tickers
+        radai = [radai_0, radai_1, radai_2] 
+
+        plt.scatter(0, 0, color='black')
+        self.set_goal(orientation=0, x=0, y=0)
+        self.set_goal(orientation=0, x=0, y=0)
+
+        init_pos = self.robot.state_['position']
+        x = np.array(list(self.queue_of_x.queue))
+        y = np.array(list(self.queue_of_y.queue))
+        master_list_x.append(x)
+        master_list_y.append(y)
+        print(f'x and y are:\n\t{x}\n\t{y}')
+
+        counter = 0
+        for radius in radai:
+            for tick in range(numb_tickers):
+                plt.scatter(radius*np.cos(tick*phase_shift), radius*np.sin(tick*phase_shift), color='black')
+
+                self.queue_of_x = queue.Queue()
+                self.queue_of_y = queue.Queue()
+                self.set_goal(orientation=0, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
+                init_pos = self.robot.state_['position']
+                x = round(init_pos[0], 2) - np.array(list(self.queue_of_x.queue))
+                y = round(init_pos[1], 2) - np.array(list(self.queue_of_y.queue))
+                master_list_x.append(x)
+                master_list_y.append(y)
+                print(f'[{counter}] x and y are:\n\t{x}\n\t{y}')
+
+                counter += 1
+        plt.show()
+
+        for i in range(len(master_list_x)):
+            plt.plot(master_list_x[i], master_list_y[i])
+        plt.show()
+ 
+
+    def set_goal(self, orientation=1, x=10 ,y=10, z=0): # TODO_added
         """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
             seq: 0
             stamp:
@@ -643,10 +698,35 @@ class GazeborosEnv(gym.Env):
 
         self.goal_target.publish(obj)
 
-        rospy.loginfo(f"PoseStamped() is  {obj}")
+        # rospy.loginfo(f"PoseStamped() is  {obj}")
+        self.plot_toggle = True
 
-        pass 
+        self.path_sub = rospy.Subscriber("/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
 
+        sleep(1)
+        # if not self.queue_of_x.empty():
+        #     init_pos = self.robot.state_['position']
+        #     print(f"init robot position {init_pos[0]},{init_pos[1]}")
+        #     x = round(init_pos[0], 2) - np.array(self.queue_of_x.queue)
+        #     y = round(init_pos[1], 2) - np.array(self.queue_of_y.queue)
+        #     print(f'(x,y) is\n\t{x},\n\t{y}')
+            # plt.plot(x, y)
+            # plt.show()
+         
+
+    def path_cb(self, msg):
+        # print(f'msg is: \n{msg}')
+
+        if self.plot_toggle: # == 5 TODO maybe not the first, but i think they are all the same. use print below to see
+            self.plot_toggle=False
+            for pos in msg.poses:
+                # print(f' (x,y) is {pos.pose.position.x:.2f}, {pos.pose.position.y:.2f}')
+                self.queue_of_x.put(round(pos.pose.position.x, 2))
+                self.queue_of_y.put(round(pos.pose.position.y, 2))
+            print(f'done loading queues')
+            
+
+        pass
 
     def set_agent(self, agent_num):
         try:

@@ -1,4 +1,6 @@
 """
+see the function `build_action_discrete_action_space()` in gym_gazeboros_ac.py
+
 rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
   seq: 0
   stamp:
@@ -50,12 +52,15 @@ if __name__ == '__main__':
 
         for i in range(1000000):# EPISODE_LEN
             state, reward, done, _ = env.step(action)
-            
-            env.set_goal(orientation=2, x=random.randint(-9,9),y=random.randint(-9,9), z=0)
+
+            env.build_action_discrete_action_space()
+            state, reward, done, _ = env.step(action)
 
 
-
-            sleep(5.00)
+            sleep(3.00)
+            print("END")
+            env.close()
+            exit(1)
             if done:
                 break    
     print("END")
