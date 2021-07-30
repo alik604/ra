@@ -610,7 +610,7 @@ class GazeborosEnv(gym.Env):
     def use_test_setting(self):
         self.is_use_test_setting = True
     
-    def build_action_discrete_action_space(self, numb_tickers=2, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+    def build_action_discrete_action_space(self, numb_tickers=12, radai_0=0.4, radai_1=0.6, radai_2=0.8):
         # thread = threading.Thread(target=self.set_goal, args=(1, 0, 0))
         # thread.daemon = False
         # thread.start()   
@@ -631,10 +631,10 @@ class GazeborosEnv(gym.Env):
         self.set_goal(orientation=0, x=0, y=0)
 
         init_pos = self.robot.state_['position']
-        x = np.array(list(self.queue_of_x.queue))
-        y = np.array(list(self.queue_of_y.queue))
-        master_list_x.append(x)
-        master_list_y.append(y)
+        x = init_pos[0] - np.array(list(self.queue_of_x.queue))
+        y = init_pos[1] - np.array(list(self.queue_of_y.queue))
+        master_list_x.append(list(x))
+        master_list_y.append(list(y))
         print(f'x and y are:\n\t{x}\n\t{y}')
 
         counter = 0
@@ -646,10 +646,10 @@ class GazeborosEnv(gym.Env):
                 self.queue_of_y = queue.Queue()
                 self.set_goal(orientation=0, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
                 init_pos = self.robot.state_['position']
-                x = round(init_pos[0], 2) - np.array(list(self.queue_of_x.queue))
-                y = round(init_pos[1], 2) - np.array(list(self.queue_of_y.queue))
-                master_list_x.append(x)
-                master_list_y.append(y)
+                x = init_pos[0] - np.array(list(self.queue_of_x.queue))
+                y = init_pos[1] - np.array(list(self.queue_of_y.queue))
+                master_list_x.append(list(x.round(2)))
+                master_list_y.append(list(y.round(2)))
                 print(f'[{counter}] x and y are:\n\t{x}\n\t{y}')
 
                 counter += 1
@@ -658,7 +658,18 @@ class GazeborosEnv(gym.Env):
         for i in range(len(master_list_x)):
             plt.plot(master_list_x[i], master_list_y[i])
         plt.show()
- 
+
+        x = zip(master_list_x, master_list_y)
+        x = tuple(x)
+
+        with open('action_discrete_action_space.pickle', 'wb') as handle:
+            pickle.dump(x, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # with open('action_discrete_action_space.pickle', 'rb') as handle:
+        #     x = pickle.load(handle)
+        return x       
+
+            
+
 
     def set_goal(self, orientation=1, x=10 ,y=10, z=0): # TODO_added
         """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
@@ -703,7 +714,7 @@ class GazeborosEnv(gym.Env):
 
         self.path_sub = rospy.Subscriber("/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
 
-        sleep(1)
+        sleep(1) # not sure if this is pointless, but it's not too inefficient for concerned. 
         # if not self.queue_of_x.empty():
         #     init_pos = self.robot.state_['position']
         #     print(f"init robot position {init_pos[0]},{init_pos[1]}")

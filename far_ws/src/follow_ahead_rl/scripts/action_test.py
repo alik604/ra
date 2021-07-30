@@ -27,7 +27,7 @@ import gym_gazeboros_ac
 import numpy as np
 import matplotlib.pyplot as plt
 from time import sleep
-import random
+import random, pickle
 
 
 
@@ -36,6 +36,33 @@ ENV_NAME = 'gazeborosAC-v0'
 
 
 if __name__ == '__main__':
+
+
+    # l1 = [[1,2,3], [1,2,3], [1,2,3]]
+    # l2 = [[9,8,7], [9,8,7], [9,8,7]]
+
+    # x = zip(l1,l2)
+    # print(type(x))
+    # x = tuple(x)
+    # print(type(x))
+    # x, y = list(zip(*x))
+    # print(x)
+    # print(y)
+    # #########
+
+    with open('action_discrete_action_space.pickle', 'rb') as handle:
+        x = pickle.load(handle)
+    x, y = list(zip(*x))
+
+    print(f'[in action_test.py]')
+    for i in range(len(x)):
+      print(f'[{i}/{len(x)-1}]')
+      print(f'\t{x[i]}, {y[i]}')
+      print(f'\t{tuple(zip(x[i], y[i]))}')
+      plt.plot(x[i], y[i])
+    plt.show()
+    exit()
+    
     print('START Move Test')
 
     mode = 4
@@ -53,7 +80,13 @@ if __name__ == '__main__':
         for i in range(1000000):# EPISODE_LEN
             state, reward, done, _ = env.step(action)
 
-            env.build_action_discrete_action_space()
+            x = env.build_action_discrete_action_space()
+            x, y = list(zip(*x))
+
+            print(f'[in action_test.py]')
+            for i in range(len(x)):
+              print(f'{x[i]}, {y[i]}')
+              print(f'\t{tuple(zip(x[i], y[i]))}')
             state, reward, done, _ = env.step(action)
 
 
@@ -63,6 +96,6 @@ if __name__ == '__main__':
             exit(1)
             if done:
                 break    
-    print("END")
+            print("END")
 
 
