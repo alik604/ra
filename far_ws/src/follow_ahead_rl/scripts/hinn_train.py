@@ -24,8 +24,8 @@ TRAIN_MLP = False
 EPOCHS = 550 # 400
 BATCH_SIZE = 64
 
-TRAIN_CATBOOST = True
-TRAIN_RFR = True
+TRAIN_CATBOOST = False
+TRAIN_RFR = False
 TRAIN_POLY = True
 
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         PATH = './model_weights/HumanIntentNetwork/RandomForestRegressor'
         X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.1, random_state=0)
         
-        if False: # os.path.isfile(PATH):
+        if os.path.isfile(PATH):
             print(f'RandomForestRegressor save found. Skipping training...')
             regr = pickle.load(open(PATH, 'rb'))
             print(regr.best_params_)
@@ -138,12 +138,12 @@ if __name__ == '__main__':
             
             regr = RandomForestRegressor(n_estimators=100, max_depth=100, max_features=None, n_jobs=4, random_state=0)
             regr.fit(X_train, y_train)
-
-            y_pred = regr.predict(X_test)
-            mse = mean_squared_error(y_test, y_pred)
-            print(f'MSE for RandomForestRegressor is {mse:.6f}\n')
-
             pickle.dump(regr, open(PATH, 'wb'))
+        y_pred = regr.predict(X_test)
+        mse = mean_squared_error(y_test, y_pred)
+        print(f'MSE for RandomForestRegressor is {mse:.6f}\n')
+
+            
 
         # #### grid search #####
         # regr = RandomForestRegressor()
@@ -164,46 +164,50 @@ if __name__ == '__main__':
         from sklearn.preprocessing import PolynomialFeatures
 
         PATH = './model_weights/HumanIntentNetwork/PolynomialRegressor'
-        X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.1, random_state=0)
+        # X_train, X_test, y_train, y_test = train_test_split(list_of_human_state, list_of_human_state_next, test_size=0.1, random_state=0)
+        idx = int(len(list_of_human_state)*0.9)
+        X_train, X_test, y_train, y_test = list_of_human_state[:idx], list_of_human_state[idx:], list_of_human_state_next[:idx], list_of_human_state_next[idx:]
+
+        poly_reg = PolynomialFeatures(degree=2)
+        X_poly_train = poly_reg.fit_transform(X_train)
+        print(f'X_poly_train.shape {X_poly_train.shape}')
         
-        if False: # os.path.isfile(PATH):
+        if os.path.isfile(PATH):
             print(f'PolynomialRegressor save found. Skipping training...')
             regr = pickle.load(open(PATH, 'rb'))
-            print(regr.best_params_)
+            print(f'coef: {regr.coef_} | intercept: {regr.coef_}')
         else:
             print(f'PolynomialRegressor save not found. Training...')
-
+            regr = LinearRegression()
+            regr.fit(X_poly_train, y_train)
+            pickle.dump(regr, open(PATH, 'wb'))
             #### fit hardcoded model #####
             # degree=1  | MSE is 0.124031
             # degree=2  | MSE is 0.118514
             # degree=3  | MSE is 0.134984  |  5000 random features
 
-            poly_reg = PolynomialFeatures(degree=2)
-            X_poly_train = poly_reg.fit_transform(X_train)
-            print(f'X_poly_train.shape {X_poly_train.shape}')
             # X_poly_train = np.array(X_poly_train)
             # size = X_poly_train.shape[1]
             # idx = np.random.random_integers(0, size, 5000)
             # X_poly_train = X_poly_train[:, idx]
             # print(f'X_poly_train {X_poly_train.shape}')
 
-            regr = LinearRegression()
-            regr.fit(X_poly_train, y_train)
+        y_pred = regr.predict(poly_reg.transform(X_test)) # [:, idx]
+        mse = mean_squared_error(y_test, y_pred)
+        print(f'MSE for PolynomialRegressor is {mse:.6f}\n')
+    
+        def visualization(start, end, X_test=X_test, y_test=y_test):
+            y_pred = regr.predict(poly_reg.transform(X_test[start:end])) 
+            y_test = np.array(y_test)
+            # print(y_test[start:end])
+            print(y_test[start:end, 0])
+            plt.figure(figsize=(10, 10))
+            plt.plot(y_pred[start:end,0], y_pred[start:end,1], color='r', label='x,y of y_pred')
+            plt.plot(y_test[start:end,0], y_test[start:end,1], color='k', label='x,y of X_test')
+            plt.show()
 
-            y_pred = regr.predict(poly_reg.transform(X_test)) # [:, idx]
-            mse = mean_squared_error(y_test, y_pred)
-            print(f'MSE for PolynomialRegressor is {mse:.6f}\n')
+        # print(f'y_test\n{np.array(y_test)[-100:]}')
+        #### Visualization ####
+        # visualization(0, 120)
+        visualization(500, 520)
 
-            # pickle.dump(regr, open(PATH, 'wb'))
-
-        # #### grid search #####
-        # regr = RandomForestRegressor()
-        # random_grid = {'n_estimators': [500], #, 500, 1000, 1500],
-        #                 'max_features': ['auto', None],
-        #                 'max_depth': [None, 100],
-        #                 'min_samples_split': [2, 3],
-        #                 'min_samples_leaf': [3, 4],
-        #                 'bootstrap': [True]}
-        # rf_random = GridSearchCV(estimator = regr, param_grid = random_grid, cv = 2, verbose=2, n_jobs = -1)
-        # rf_random.fit(X_train, y_train)
-        # print(rf_random.best_params_)
