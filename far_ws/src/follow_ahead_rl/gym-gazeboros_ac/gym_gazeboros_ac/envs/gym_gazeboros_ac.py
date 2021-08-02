@@ -610,7 +610,7 @@ class GazeborosEnv(gym.Env):
     def use_test_setting(self):
         self.is_use_test_setting = True
     
-    def build_action_discrete_action_space(self, numb_tickers=12, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+    def build_action_discrete_action_space(self, numb_tickers=3, radai_0=0.4, radai_1=0.6, radai_2=0.8):
         # thread = threading.Thread(target=self.set_goal, args=(1, 0, 0))
         # thread.daemon = False
         # thread.start()   
@@ -619,6 +619,14 @@ class GazeborosEnv(gym.Env):
         # while self.queue_of_x.empty(): # wont exit
         #     sleep(5)
         #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
+
+        sleepy_time = 0
+        # state = {} # does not work...
+        # state["velocity"] = (0.5, 0) # linear_vel, angular_vel
+        # state["position"] = (5, 5)
+        # state["orientation"] = 0
+        # self.robot.set_state(state)
+
         self.queue_of_x = queue.Queue()
         self.queue_of_y = queue.Queue()
         master_list_x = []
@@ -631,12 +639,14 @@ class GazeborosEnv(gym.Env):
         self.set_goal(orientation=0, x=0, y=0)
 
         init_pos = self.robot.state_['position']
-        x = init_pos[0] - np.array(list(self.queue_of_x.queue))
-        y = init_pos[1] - np.array(list(self.queue_of_y.queue))
+        print(f'robots x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n')
+        x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
+        y = np.array(list(self.queue_of_y.queue)) # init_pos[1] -
         master_list_x.append(list(x))
         master_list_y.append(list(y))
-        print(f'x and y are:\n\t{x}\n\t{y}')
+        print(f'x and y are:\n\t{x}\n\t{y}\n')
 
+        sleep(sleepy_time)
         counter = 0
         for radius in radai:
             for tick in range(numb_tickers):
@@ -645,12 +655,13 @@ class GazeborosEnv(gym.Env):
                 self.queue_of_x = queue.Queue()
                 self.queue_of_y = queue.Queue()
                 self.set_goal(orientation=0, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
+                sleep(sleepy_time)
                 init_pos = self.robot.state_['position']
-                x = init_pos[0] - np.array(list(self.queue_of_x.queue))
-                y = init_pos[1] - np.array(list(self.queue_of_y.queue))
+                x = np.array(list(self.queue_of_x.queue)) # init_pos[0] - 
+                y = np.array(list(self.queue_of_y.queue)) # init_pos[1] - 
                 master_list_x.append(list(x.round(2)))
                 master_list_y.append(list(y.round(2)))
-                print(f'[{counter}] x and y are:\n\t{x}\n\t{y}')
+                print(f'[{counter}] x and y are:\n\t{x}\n\t{y}\n')
 
                 counter += 1
         plt.show()
@@ -670,7 +681,7 @@ class GazeborosEnv(gym.Env):
 
             
 
-
+    # A utility function for build_action_discrete_action_space()
     def set_goal(self, orientation=1, x=10 ,y=10, z=0): # TODO_added
         """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
             seq: 0
@@ -691,10 +702,16 @@ class GazeborosEnv(gym.Env):
 
             I might need to use /base_link as the frame 
         """        
+        # TODO is this even correct? 
+        array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
+        print(f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
+        x, y = array[0], array[1]
+
         self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
         
         obj = PoseStamped()
-        obj.header.frame_id = 'tb3_0/base_link'
+        # obj.header.frame_id = 'tb3_0/base_link'
+        obj.header.frame_id = 'map'
         # obj.header.stamp = rospy.Time.now()
         obj.pose.position.x = x
         obj.pose.position.y = y
@@ -724,20 +741,43 @@ class GazeborosEnv(gym.Env):
             # plt.plot(x, y)
             # plt.show()
          
-
+    # a callback for set_goal(), when we Subscriber to "local_plan"
     def path_cb(self, msg):
         # print(f'msg is: \n{msg}')
 
         if self.plot_toggle: # == 5 TODO maybe not the first, but i think they are all the same. use print below to see
             self.plot_toggle=False
             for pos in msg.poses:
-                # print(f' (x,y) is {pos.pose.position.x:.2f}, {pos.pose.position.y:.2f}')
-                self.queue_of_x.put(round(pos.pose.position.x, 2))
-                self.queue_of_y.put(round(pos.pose.position.y, 2))
+                scaler = 1 # self.robot.max_rel_pos_range
+                x, y = pos.pose.position.x, pos.pose.position.y
+                # array = self.get_global_position([x*scaler, y*scaler], self.robot) # TODO add orientation
+                # array = self.get_global_position(self.denormlize([x, y]), self.robot)
+                # print(f' (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f} ')
+                # x, y = array[0], array[1]
+                self.queue_of_x.put(round(x, 2))
+                self.queue_of_y.put(round(y, 2))
             print(f'done loading queues')
-            
+        # pass
 
-        pass
+            # self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
+            
+            # obj = PoseStamped()
+            # # obj.header.frame_id = 'tb3_0/base_link'
+            # obj.header.frame_id = 'map'
+            # # obj.header.stamp = rospy.Time.now()
+            # obj.pose.position.x = x
+            # obj.pose.position.y = y
+            # obj.pose.position.z = 0
+
+            # quaternion_rotation = Quaternion.from_euler(0, 1, 0)
+            # obj.pose.orientation.x = quaternion_rotation[3]
+            # obj.pose.orientation.y = quaternion_rotation[1]
+            # obj.pose.orientation.z = quaternion_rotation[2]
+            # obj.pose.orientation.w = quaternion_rotation[0]
+
+
+            # self.goal_target.publish(obj)
+            # sleep(1)
 
     def set_agent(self, agent_num):
         try:

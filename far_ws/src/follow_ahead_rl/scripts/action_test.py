@@ -50,18 +50,18 @@ if __name__ == '__main__':
     # print(y)
     # #########
 
-    with open('action_discrete_action_space.pickle', 'rb') as handle:
-        x = pickle.load(handle)
-    x, y = list(zip(*x))
+    # with open('action_discrete_action_space.pickle', 'rb') as handle:
+    #     x = pickle.load(handle)
+    # x, y = list(zip(*x))
 
-    print(f'[in action_test.py]')
-    for i in range(len(x)):
-      print(f'[{i}/{len(x)-1}]')
-      print(f'\t{x[i]}, {y[i]}')
-      print(f'\t{tuple(zip(x[i], y[i]))}')
-      plt.plot(x[i], y[i])
-    plt.show()
-    exit()
+    # print(f'[in action_test.py]')
+    # for i in range(len(x)):
+    #   print(f'[{i}/{len(x)-1}]')
+    #   print(f'\t{x[i]}, {y[i]}')
+    #   print(f'\t{tuple(zip(x[i], y[i]))}')
+    #   plt.plot(x[i], y[i])
+    # plt.show()
+    # exit()
     
     print('START Move Test')
 
@@ -84,9 +84,9 @@ if __name__ == '__main__':
             x, y = list(zip(*x))
 
             print(f'[in action_test.py]')
-            for i in range(len(x)):
-              print(f'{x[i]}, {y[i]}')
-              print(f'\t{tuple(zip(x[i], y[i]))}')
+            # for i in range(len(x)):
+            #   print(f'{x[i]}, {y[i]}')
+            #   print(f'\t{tuple(zip(x[i], y[i]))}')
             state, reward, done, _ = env.step(action)
 
 

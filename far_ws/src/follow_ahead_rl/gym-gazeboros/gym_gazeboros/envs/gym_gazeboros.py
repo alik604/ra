@@ -581,41 +581,6 @@ class GazeborosEnv(gym.Env):
     def use_test_setting(self):
         self.is_use_test_setting = True
 
-    def set_goal(self): # TODO_added
-        self.goal_target = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1)
-        obj = PoseStamped()
-        obj.header.frame_id = ''
-        # obj.header.stamp = rospy.Time.now()
-        obj.pose.position.x = 10
-        obj.pose.position.y = 10
-        obj.pose.position.z = 10
-        obj.pose.orientation.x = 0.0
-        obj.pose.orientation.y = 0.0
-        obj.pose.orientation.z = 0.0
-        obj.pose.orientation.w = 0.0
-
-        rospy.loginfo(f"PoseStamped() is  {obj}")
-        
-        str ="""header:
-                    seq: 0
-                    stamp:
-                        secs: 0
-                        nsecs: 0
-                    frame_id: ''
-                pose:
-                    position:
-                        x: 10.0
-                        y: 10.0
-                        z: 0.0
-                    orientation:
-                        x: 0.0
-                        y: 0.0
-                        z: 0.0
-                        w: 0.0
-             """
-        self.goal_target.publish(obj)
-        pass 
-
     def set_agent(self, agent_num):
         try:
             self.node = rospy.init_node('gym_gazeboros_{}'.format(agent_num))
