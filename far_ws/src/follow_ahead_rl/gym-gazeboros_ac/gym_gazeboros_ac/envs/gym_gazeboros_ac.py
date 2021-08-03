@@ -620,12 +620,14 @@ class GazeborosEnv(gym.Env):
         #     sleep(5)
         #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
 
-        sleepy_time = 0
+        sleepy_time = 2
         # state = {} # does not work...
         # state["velocity"] = (0.5, 0) # linear_vel, angular_vel
         # state["position"] = (5, 5)
         # state["orientation"] = 0
         # self.robot.set_state(state)
+
+        orientation = self.robot.get_orientation()
 
         self.queue_of_x = queue.Queue()
         self.queue_of_y = queue.Queue()
@@ -635,11 +637,11 @@ class GazeborosEnv(gym.Env):
         radai = [radai_0, radai_1, radai_2] 
 
         plt.scatter(0, 0, color='black')
-        self.set_goal(orientation=0, x=0, y=0)
-        self.set_goal(orientation=0, x=0, y=0)
+        self.set_goal(orientation=orientation, x=0, y=0)
+        self.set_goal(orientation=orientation, x=0, y=0)
 
         init_pos = self.robot.state_['position']
-        print(f'robots x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n')
+        print(f"robot's x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n")
         x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
         y = np.array(list(self.queue_of_y.queue)) # init_pos[1] -
         master_list_x.append(list(x))
@@ -654,9 +656,9 @@ class GazeborosEnv(gym.Env):
 
                 self.queue_of_x = queue.Queue()
                 self.queue_of_y = queue.Queue()
-                self.set_goal(orientation=0, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
+                self.set_goal(orientation=orientation, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
                 sleep(sleepy_time)
-                init_pos = self.robot.state_['position']
+                # init_pos = self.robot.state_['position']
                 x = np.array(list(self.queue_of_x.queue)) # init_pos[0] - 
                 y = np.array(list(self.queue_of_y.queue)) # init_pos[1] - 
                 master_list_x.append(list(x.round(2)))
@@ -731,7 +733,7 @@ class GazeborosEnv(gym.Env):
 
         self.path_sub = rospy.Subscriber("/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
 
-        sleep(1) # not sure if this is pointless, but it's not too inefficient for concerned. 
+        sleep(0.5) # not sure if this is pointless, but it's not too inefficient for concerned. 
         # if not self.queue_of_x.empty():
         #     init_pos = self.robot.state_['position']
         #     print(f"init robot position {init_pos[0]},{init_pos[1]}")
@@ -777,7 +779,7 @@ class GazeborosEnv(gym.Env):
 
 
             # self.goal_target.publish(obj)
-            # sleep(1)
+            # sleep(0.5)
 
     def set_agent(self, agent_num):
         try:
@@ -1351,6 +1353,43 @@ class GazeborosEnv(gym.Env):
         images = np.asarray(images)
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
+    
+    def get_observation_relative_robot(self):
+
+        while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
+            if self.is_reseting:
+                return None
+            time.sleep(0.001)
+        pos_his_robot = np.asarray(self.robot.pos_history.get_elemets())
+        heading_robot = self.robot.state_["orientation"]
+
+        pos_his_person = np.asarray(self.person.pos_history.get_elemets())
+        heading_person = self.person.state_["orientation"]
+
+        robot_vel = np.asarray(self.robot.get_velocity())
+        person_vel = np.asarray(self.person.get_velocity())
+        poses = np.concatenate((pos_his_robot, pos_his_person))
+        if self.use_noise:
+            poses += np.random.normal(loc=0, scale=0.1, size=poses.shape)
+            heading_robot += np.random.normal(loc=0, scale=0.2)
+            heading_person += np.random.normal(loc=0, scale=0.2)
+            robot_vel += np.random.normal(loc=0, scale=0.1, size=robot_vel.shape)
+            person_vel += np.random.normal(loc=0, scale=0.1, size=person_vel.shape)
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
+        pos_rel = []
+        for pos in (poses):
+            relative = GazeborosEnv.get_relative_position(pos, self.robot)# TODO_changed from self.robot.relative
+            pos_rel.append(relative)
+        pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
+        #TODO: make the velocity normalization better
+        velocities = np.concatenate((person_vel, robot_vel))/self.robot.max_angular_vel
+        if self.use_orientation_in_observation:
+            velocities_heading = np.append(velocities, heading_relative) # This was not changed, since it's extra information...
+        else:
+            velocities_heading = velocities
+        final_ob =  np.append(np.append(pos_history, velocities_heading), self.prev_action)
+
+        return final_ob
 
     def get_observation(self):
         # got_laser = False
