@@ -688,7 +688,7 @@ class GazeborosEnv(gym.Env):
         """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
             seq: 0
             stamp:
-                secs: 0
+                secs: 0 
                 nsecs: 0
             frame_id: 'tb3_0/base_link'
             pose:
@@ -713,7 +713,7 @@ class GazeborosEnv(gym.Env):
         
         obj = PoseStamped()
         # obj.header.frame_id = 'tb3_0/base_link'
-        obj.header.frame_id = 'map'
+        obj.header.frame_id = 'map' 
         # obj.header.stamp = rospy.Time.now()
         obj.pose.position.x = x
         obj.pose.position.y = y
@@ -832,9 +832,7 @@ class GazeborosEnv(gym.Env):
             self.init_simulator()
 
     def model_states_cb(self,  states_msg):
-        """sets the new state
-
-        """
+        """sets the new state"""
         
         # # TODO DWA
         # # Hardcoded as circle
@@ -850,10 +848,6 @@ class GazeborosEnv(gym.Env):
         # x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
         # # goal position [x(m), y(m)]
         # goal = np.array([gx, gy])
-
-
-
-
 
         for model_idx in range(len(states_msg.name)):
             found = False
