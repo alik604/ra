@@ -13,6 +13,7 @@ import threading
 import _thread
 import queue
 
+from copy import deepcopy
 
 #from cv_bridge import CvBridge # for visualize_observation()
 
@@ -66,6 +67,25 @@ class History():
         self.window_size = window_size
         self.avg_frame_rate = None
         self.time_data_ = []
+
+    def deepcopy(self):
+
+        copy = History(self.window_size, self.update_rate, self.save_rate)
+
+        copy.idx = self.idx
+        copy.update_rate = self.update_rate
+        copy.save_rate = self.save_rate
+        copy.lock = threading.Lock()
+        copy.memory_size = self.memory_size
+        copy.data = self.data
+        copy.prev_add_time = self.prev_add_time
+        copy.window_size = self.window_size
+        copy.avg_frame_rate = self.avg_frame_rate
+        copy.time_data_ = self.time_data_
+
+        return copy
+        
+
 
     def add_element(self, element):
         """
@@ -256,9 +276,11 @@ class Robot():
         else:
             self.angular_pid = PID(2.5, 0, 0.03, setpoint=0)
             self.linear_pid = PID(2.5, 0, 0.05, setpoint=0)
+            
         self.pos_history = History(self.window_size_history, self.update_rate_states)
         self.orientation_history = History(self.window_size_history, self.update_rate_states)
         self.velocity_history = History(self.window_size_history, self.update_rate_states)
+
         self.velocity_history.add_element((0,0))
         self.pos_history.add_element((init_pose["pos"][0],init_pose["pos"][1]))
         self.orientation_history.add_element(init_pose["orientation"])
@@ -913,6 +935,9 @@ class GazeborosEnv(gym.Env):
             relative = self.person
         self.robot = Robot('tb3_{}'.format(self.agent_num),
                            max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        
+        self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+                           max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
 
     def find_random_point_in_circle(self, radious, min_distance, around_point):
         max_r = 2
@@ -1348,19 +1373,30 @@ class GazeborosEnv(gym.Env):
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
     
-    def get_observation_relative_robot(self):
+    def get_observation_relative_robot(self, states_to_simulate):
 
         while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
-            if self.is_reseting:
-                return None
+            if self.is_reseting:    return None
             time.sleep(0.001)
-        pos_his_robot = np.asarray(self.robot.pos_history.get_elemets())
-        heading_robot = self.robot.state_["orientation"]
+        
+        # Manual copy of key information
+        self.robot_simulated.state_ = self.robot.state_
+        self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
+        self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
+        self.robot_simulated.velocity_history = self.robot.velocity_history.deepcopy()
+        # self.robot_simulated.all_pose_ = deepcopy(self.robot.all_pose_)
+
+        for state in states_to_simulate:
+            self.robot_simulated.set_state(state)
+            print('foo')
+
+        pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
+        heading_robot = self.robot_simulated.state_["orientation"]
 
         pos_his_person = np.asarray(self.person.pos_history.get_elemets())
         heading_person = self.person.state_["orientation"]
 
-        robot_vel = np.asarray(self.robot.get_velocity())
+        robot_vel = np.asarray(self.robot_simulated.get_velocity())
         person_vel = np.asarray(self.person.get_velocity())
         poses = np.concatenate((pos_his_robot, pos_his_person))
         if self.use_noise:
@@ -1372,11 +1408,11 @@ class GazeborosEnv(gym.Env):
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
         pos_rel = []
         for pos in (poses):
-            relative = GazeborosEnv.get_relative_position(pos, self.robot)# TODO_changed from self.robot.relative
+            relative = GazeborosEnv.get_relative_position(pos, self.robot_simulated)# TODO_changed from self.robot.relative
             pos_rel.append(relative)
         pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
         #TODO: make the velocity normalization better
-        velocities = np.concatenate((person_vel, robot_vel))/self.robot.max_angular_vel
+        velocities = np.concatenate((person_vel, robot_vel))/self.robot_simulated.max_angular_vel
         if self.use_orientation_in_observation:
             velocities_heading = np.append(velocities, heading_relative) # This was not changed, since it's extra information...
         else:

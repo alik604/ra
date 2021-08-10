@@ -94,9 +94,11 @@ class MCTS(nn.Module): # nn.Module
         # action = np.random.choice(np.arange(4), p=probs[0].detach().numpy())
 
         # action = np.argmax(self.p[state]) if state in self.Q else self.env.action_space.sample()
-        print(state)
-        print(self.Q[state])
-        print(state in self.Q)
+        state = np.argmax(state)
+        # print(state)
+        # print(self.Q[state])
+        # print(self.Q)
+        # print(self.p)
         
         if state in self.Q:
             action = np.argmax(self.p[state])
@@ -167,7 +169,7 @@ class MCTS(nn.Module): # nn.Module
 
             states, actions, reward = self.run_episode(epsilon)
             # traversed = []
-            print(reward)
+            # print(reward)
             # print(actions)
             # saved_log_probs = []
             

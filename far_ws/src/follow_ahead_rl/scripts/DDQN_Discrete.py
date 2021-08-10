@@ -17,8 +17,6 @@ import torch.optim as optim
 
 
 if __name__ == '__main__':
-
-
     # from https://raw.githubusercontent.com/philtabor/Youtube-Code-Repository/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
     class DeepQNetwork(nn.Module):
         def __init__(self, lr, input_dims, fc1_dims, fc2_dims, 
@@ -234,7 +232,7 @@ if __name__ == '__main__':
 
             score += reward
 
-            agent.store_transition(observation, action_idx, min(reward, -10.1234), observation_, done)
+            agent.store_transition(observation, action_idx, max(reward, -10.1234), observation_, done)
             agent.learn()
             observation = observation_
 
