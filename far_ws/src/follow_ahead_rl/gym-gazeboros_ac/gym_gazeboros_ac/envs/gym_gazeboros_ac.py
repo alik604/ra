@@ -315,6 +315,7 @@ class Robot():
         return self.velocity_history.get_latest()
 
     def pause(self):
+        print('Pausing...')
         self.is_pause = True
         self.stop_robot()
 
@@ -1388,7 +1389,7 @@ class GazeborosEnv(gym.Env):
 
         for state in states_to_simulate:
             self.robot_simulated.set_state(state)
-            print('foo')
+
 
         pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
         heading_robot = self.robot_simulated.state_["orientation"]

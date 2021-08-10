@@ -56,7 +56,7 @@ if __name__ == '__main__':
         # env.set_person_mode(mode % 5)
         mode += 1
         state = env.reset()
-        # env.person.pause()
+        # env.person.pause() # weird side effect for ending episode (path finished)
         # env.person.resume()
 
         c = 0

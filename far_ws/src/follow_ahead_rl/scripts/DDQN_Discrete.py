@@ -17,7 +17,7 @@ import torch.optim as optim
 
 
 if __name__ == '__main__':
-    # from https://raw.githubusercontent.com/philtabor/Youtube-Code-Repository/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
+    # from https://raw.githubusercontent.com/philtabor/Youtube-Code-Repository/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py and https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/main_torch_dqn_lunar_lander_2020.py
     class DeepQNetwork(nn.Module):
         def __init__(self, lr, input_dims, fc1_dims, fc2_dims, 
                 n_actions, name, chkpt_dir='./model_weights/DDQN_Discrete'):
@@ -198,13 +198,12 @@ if __name__ == '__main__':
     n_games = 10000
     best_score = 0
     for i in range(n_games):
-        # env.person.pause()
+        # env.person.pause() # weird side effect for ending episode (path finished)
         # env.person.resume()
         score = 0
         observation = env.reset()
         done = False
         while not done:
-            
             rel_heading = env.get_relative_heading_position(env.robot, env.person)[1]
             orientation_rad = np.arctan2(rel_heading[1], rel_heading[0])
             action_set = compute_action_set(orientation_rad)
@@ -232,7 +231,7 @@ if __name__ == '__main__':
 
             score += reward
 
-            agent.store_transition(observation, action_idx, max(reward, -10.1234), observation_, done)
+            agent.store_transition(observation, action_idx, reward, observation_, done)
             agent.learn()
             observation = observation_
 
