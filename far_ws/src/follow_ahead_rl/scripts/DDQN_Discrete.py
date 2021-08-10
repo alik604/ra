@@ -186,8 +186,8 @@ if __name__ == '__main__':
     # agent = Agent(gamma=0.99, epsilon=0.35, batch_size=64, n_actions=n_actions, eps_end=0.01,
     #           input_dims=[observation_shape], lr=0.001, eps_dec=5e-4, ALIs_over_training=1)
 
-    agent = Agent(gamma=0.99, epsilon=0.3, batch_size=128, n_actions=n_actions, eps_end=0.01,
-              input_dims=[observation_shape], lr=0.01, eps_dec=5e-6*1.0, ALIs_over_training=2) # changed from eps_dec=5e-4
+    agent = Agent(gamma=0.99, epsilon=0.8, batch_size=128, n_actions=n_actions, eps_end=0.01,
+              input_dims=[observation_shape], lr=0.01, eps_dec=5e-6*2.0, ALIs_over_training=2) # changed from eps_dec=5e-4
     agent.load_models()
 
     env = gym.make(ENV_NAME).unwrapped
