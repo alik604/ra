@@ -23,7 +23,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_rewards=0):
     # print(f" \t{trajectory[0]} \n\t{trajectory[1]}\n")
     
     states = []
-    for i in range(len(trajectory[0])):
+    for i in range(len(trajectory[0])): 
       state = {} 
       state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
       state["position"] = (trajectory[0][i], trajectory[1][i])
