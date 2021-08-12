@@ -600,10 +600,9 @@ class GazeborosEnv(gym.Env):
             with open('data/reachability.pkl', 'rb') as f:
                 self.reachabilit_value = pickle.load(f)
 
-    # TODO I (Ali) made changed here 
     def get_person_pos(self):
-        theta = self.person.get_orientation()
         xy = self.person.get_pos() # state_['position']
+        theta = self.person.get_orientation()
         return [xy[0], xy[1], theta]
 
     def get_system_velocities(self):
