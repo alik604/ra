@@ -9,18 +9,18 @@ import gym_gazeboros_ac
 
 np.set_printoptions(linewidth=np.inf)
 
-PATH_Poly = './model_weights/personIntentNetwork/PolynomialRegressor'
 ENV_NAME = 'gazeborosAC-v0'
+PATH_Poly = './model_weights/personIntentNetwork/PolynomialRegressor'
+
+if os.path.isfile(PATH_Poly):
+    REGR = pickle.load(open(PATH_Poly, 'rb'))
+else:
+  print(f'[Error!] PolynomialRegressor save not found')
+  raise Exception
 
 def predict_person(state):
-  poly_reg = PolynomialFeatures(degree=2)
-  if os.path.isfile(PATH_Poly):
-      regr = pickle.load(open(PATH_Poly, 'rb'))
-  else:
-    print(f'[Error!] PolynomialRegressor save not found')
-    raise Exception
-
-  y_pred = regr.predict(poly_reg.fit_transform(state)) # [:, idx]
+  state = PolynomialFeatures(degree=2).fit_transform(state) # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
+  y_pred = REGR.predict(state)
   return y_pred
 
 def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
@@ -34,20 +34,22 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
-  # TODO add person predictions
-   # save and pass the person pos like `robot_pos`
-  # TODO path_cb should give orientation
+  # TODO add person pos, and robot velocity & orientation 
+   # save and pass the person pos like `robot_pos`?
+  # TODO path_cb, which gets the points to go to the goal, can give orientation,but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
   # TODO check env.get_observation_relative_robot()
   # TODO deal with orientation when simulating
+
   # TODO add Q-network()
+
   # TODO take step 
+
   # TODO sum_of_qvals is naive. mayne we should renormalize or discount
       # 0.4+0.4+0.4 = 1.2 # surely this is better, i would take the step to get 0.4 and recompute
       # 0.2+0.5+0.6 = 1.3
 
       # 0.4+0.40+0.15 = 1.05 # surely this is better, the last is superior by far
       # 0.4+0.45+0.10 = 1.00
-
 
   print(f'\n\n[MCTS]')
   print(f'trajectories: {trajectories}')
@@ -59,7 +61,6 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   person_state_3value = predict_person(state)
   # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
   
-
   state = env.get_observation_relative_robot()
   # TODO get Q(state))
   QValues = np.random.rand(len(trajectories))
@@ -73,8 +74,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
 
   # Recursively search
   rewards = []
-  # robot_pos = env.robot.state_['position']
-  robot_pos = np.array([1, 1])
+  robot_pos = env.robot.state_['position'] # np.array([1, 1])
   for idx in idices:
     path_to_simulate = trajectories[idx]
     print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
@@ -97,6 +97,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
       person_state_3value (np.array): [x, y, theta]. this is from `hinn_data_collector.py` which has [xy[0], xy[1], state[2]]
       Nodes_to_explore (int): top N actions to consider 
       sum_of_qvals (int, optional): sum of rewards. Defaults to 0.
+      exploring_idx (int): debug index of which precomputer traj are we branching from
 
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
@@ -122,7 +123,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
     state = {} 
     state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
     state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
-    state["orientation"] = 0 #env.robot.state_["orientation"] # = 0  TODO i could add this from `path_cb` which gets the points to go to the goal, but hope will i make 2 quaternion_rotation values into 1 angular_velocity  
+    state["orientation"] = 0 #env.robot.state_["orientation"] # = 0  TODO path_cb, which gets the points to go to the goal, can give orientation, but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
     states_to_simulate.append(state)
     print(f'state["position"] {state["position"]}')
 
@@ -170,8 +171,6 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
     return recommended_move   
       
     
-      
-
 if __name__ == '__main__':
     trajectories = []
     with open('action_discrete_action_space.pickle', 'rb') as handle:
