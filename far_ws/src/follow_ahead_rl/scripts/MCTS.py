@@ -8,34 +8,41 @@ np.set_printoptions(linewidth=np.inf)
 
 ENV_NAME = 'gazeborosAC-v0'
 
-def MCTS(trajectories, Nodes_to_explore, sum_of_rewards=0):
+def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
+  """ MCTS
+
+  Args:
+      trajectories (np.array): precomputeed list
+      Nodes_to_explore (int): top N actions to consider 
+      sum_of_qvals (int, optional): sum of rewards. Defaults to 0.
+
+  Returns:
+      int: recommended_move, which of N actions to take; which of the `trajectories` to take
+  """
+
+  # TODO path_cb should give orientation
+  # TODO add human predictions
   # TODO check env.get_observation_relative_robot()
-  # TODO deal with orientation
-  # TODO add Q network ()
+  # TODO deal with orientation when simulating
+  # TODO add Q-network()
   # TODO take step 
-  # maybe only consider half of options, for a 2x speed boost
-  QValues = []
+  # TODO sum_of_qvals is naive. mayne we should renormalize or discount
+      # 0.4+0.4+0.4 = 1.2 # surely this is better, i would take the step to get 0.4 and recompute
+      # 0.2+0.5+0.6 = 1.3
+
+      # 0.4+0.40+0.15 = 1.05 # surely this is better, the last is superior by far
+      # 0.4+0.45+0.10 = 1.00
+
+  QValues = np.zeros(len(trajectories))
   print(f'\n\n[MCTS]')
   print(f'trajectories: {trajectories}')
   print(f'len(trajectories): {len(trajectories)}')
-  for idx, trajectory in enumerate(trajectories):
-    print(f'..trajectory {trajectory}')
-    # print(f" \t{trajectory[0]} \n\t{trajectory[1]}\n")
-    
-    states = []
-    for i in range(len(trajectory[0])): 
-      state = {} 
-      state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
-      state["position"] = (trajectory[0][i], trajectory[1][i])
-      state["orientation"] = 3 #env.robot.state_["orientation"] # = 0  TODO
-      states.append(state)
-      # break # only 1 
-    # state = env.get_observation_relative_robot(states)
-    # TODO get Q value here
-    QValues.append(sum(trajectory[0])) # placeholder
-    # print(f'obs:\n{state}')
-
-  print(f'QValues:\n{QValues}')
+  
+  # state = env.get_observation_relative_robot()
+  # TODO get Q(state))
+  QValues = np.random.rand(len(trajectories))
+  QValues /= np.sum(QValues)
+  print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
 
   # select top N moves
   idices = np.argsort(QValues)[::-1] # sort
@@ -43,9 +50,13 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_rewards=0):
   print(f'idices to explore: {idices}')
 
   # Recursively search
-  rewards = [] 
+  rewards = []
+  # robot_pos = env.robot.state_['position']
+  robot_pos = np.array([1, 1])
   for idx in idices:
-    reward = MCTS_recursive(trajectories[idx],trajectories, Nodes_to_explore-1, sum_of_rewards+QValues[idx])
+    path_to_simulate = trajectories[idx]
+    print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+    reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
     rewards.append(reward)
   best_idx = np.argmax(rewards)
   recommended_move = idices[best_idx]
@@ -53,55 +64,66 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_rewards=0):
   print(f'recommended_move is {recommended_move}')
   return recommended_move
     
-def MCTS_recursive(init_trajectory, raw_trajectories, Nodes_to_explore, sum_of_rewards=0):
+def MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore, sum_of_qvals=0, exploring_idx=-1):
+  """ MCTS_recursive
+  Args:
+      path_to_simulate (np.array): path to take (simulated) to get to the start point
+        path_to_simulate[0] is x 
+        path_to_simulate[0] is y
+      trajectories (np.array): precomputeed list of moves
+      Nodes_to_explore (int): top N actions to consider 
+      sum_of_qvals (int, optional): sum of rewards. Defaults to 0.
+
+  Returns:
+      int: recommended_move, which of N actions to take; which of the `trajectories` to take
+
+  """  
   QValues = []
-  adj_trajectories = raw_trajectories.copy()
-  end_init_trajectory_x = init_trajectory[0][-1]
-  end_init_trajectory_y = init_trajectory[1][-1]
-  for idx in range(len(adj_trajectories)):
-    adj_trajectories[idx][0] += end_init_trajectory_x
-    adj_trajectories[idx][1] += end_init_trajectory_y
+  states = []
 
-  print(f'\n\n[MCTS_recursive]')
-  print(f'init_trajectory: {init_trajectory} | will adjust with x {end_init_trajectory_x} and y {end_init_trajectory_y}')
-  print(f'unadjusted trajectories {list(raw_trajectories)}')
-  print(f'  adjusted trajectories {list(adj_trajectories)}')
+  # offset path_to_simulate 
+  for idx in range(len(path_to_simulate[0])):
+    path_to_simulate[0][idx] += robot_pos[0]
+    path_to_simulate[1][idx] += robot_pos[1]
+  print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
 
-  for idx in range(len(adj_trajectories)):
-    print(f'..adjusted trajectories {adj_trajectories[idx]}')
-    # print(f" \t{adj_trajectories[idx][0]} \n\t{adj_trajectories[idx][1]}\n")
 
-    states = []
-    for i in range(len(adj_trajectories[idx][0])):
-      # print(f'x {adj_trajectories[idx][0][i]}')
-      adj_trajectories = adj_trajectories.astype(int) # TODO remove this 
-      state = {} 
-      state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
-      state["position"] = (adj_trajectories[idx][0][i], adj_trajectories[idx][1][i])
-      state["orientation"] = 3 #env.robot.state_["orientation"] # = 0  TODO
-      states.append(state)
-      # break # only 1 
-    # print(f'adjusted adj_trajectories {adj_trajectories}')
-    # state = env.get_observation_relative_robot(states)
-    # TODO get Q value here
-    QValues.append(sum(adj_trajectories[idx][0]))
-    # print(f'obs:\n{state}')
-  print(f'QValues:\n{QValues}')
+  print(f'[MCTS_recursive] exploring idx: {exploring_idx}')
+  # print(f'trajectories {list(trajectories)}')
+  
+  print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+  for idx in range(len(path_to_simulate[0])):
+    state = {} 
+    state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
+    state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
+    state["orientation"] = 0 #env.robot.state_["orientation"] # = 0  TODO
+    states.append(state)
+    print(f'state["position"] {state["position"]}')
+  # state = env.get_observation_relative_robot(states)
+  # TODO get Q value here
+  QValues = np.random.rand(len(trajectories))
+  QValues /= np.sum(QValues)
+  print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
+  # print(f'obs:\n{state}')
 
   # select top N moves
-  idices = np.argsort(QValues)[::-1] # sort
+  idices = np.argsort(QValues)[::-1] # flip to get largest to smallest  
   idices = idices[:Nodes_to_explore] # select top N
   print(f'idices to explore {idices}')
 
 
   if Nodes_to_explore == 1:
-    print(f'[tail] init_trajectory: {init_trajectory}')
-    return sum_of_rewards+QValues[idices[0]]  # TODO
+    print(f'[tail] path_to_simulate: {path_to_simulate}')
+    return sum_of_qvals+QValues[idices[0]]  # TODO
   else:
     # Recursively search
-    rewards = [] 
+    rewards = []
+    # robot_pos = env.robot_simulated.state_['position']
+    robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[0][-1]]) 
     for idx in idices:
-      reward = MCTS_recursive(adj_trajectories[idx], raw_trajectories, Nodes_to_explore-1, sum_of_rewards+QValues[idx])
+      path_to_simulate = trajectories[idx]
+      print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+      reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
       rewards.append(reward)
     best_idx = np.argmax(rewards)
     recommended_move = idices[best_idx]

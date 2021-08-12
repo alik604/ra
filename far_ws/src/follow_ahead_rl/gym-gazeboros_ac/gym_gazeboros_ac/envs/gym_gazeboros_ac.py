@@ -731,12 +731,12 @@ class GazeborosEnv(gym.Env):
         array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
         print(f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
         x, y = array[0], array[1]
-
+        
+        # Set goal
         self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
         
         obj = PoseStamped()
-        # obj.header.frame_id = 'tb3_0/base_link'
-        obj.header.frame_id = 'map' 
+        obj.header.frame_id = 'map' # 'tb3_0/base_link'
         # obj.header.stamp = rospy.Time.now()
         obj.pose.position.x = x
         obj.pose.position.y = y
@@ -747,13 +747,12 @@ class GazeborosEnv(gym.Env):
         obj.pose.orientation.y = quaternion_rotation[1]
         obj.pose.orientation.z = quaternion_rotation[2]
         obj.pose.orientation.w = quaternion_rotation[0]
-
+        # rospy.loginfo(f"PoseStamped() is  {obj}")
 
         self.goal_target.publish(obj)
-
-        # rospy.loginfo(f"PoseStamped() is  {obj}")
         self.plot_toggle = True
-
+                
+        #How to get to our goal
         self.path_sub = rospy.Subscriber("/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
 
         sleep(0.5) # not sure if this is pointless, but it's not too inefficient for concerned. 
@@ -782,25 +781,19 @@ class GazeborosEnv(gym.Env):
                 self.queue_of_x.put(round(x, 2))
                 self.queue_of_y.put(round(y, 2))
             print(f'done loading queues')
-        # pass
 
+            ## See path to final position
             # self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
-            
             # obj = PoseStamped()
-            # # obj.header.frame_id = 'tb3_0/base_link'
             # obj.header.frame_id = 'map'
-            # # obj.header.stamp = rospy.Time.now()
             # obj.pose.position.x = x
             # obj.pose.position.y = y
             # obj.pose.position.z = 0
-
             # quaternion_rotation = Quaternion.from_euler(0, 1, 0)
             # obj.pose.orientation.x = quaternion_rotation[3]
             # obj.pose.orientation.y = quaternion_rotation[1]
             # obj.pose.orientation.z = quaternion_rotation[2]
             # obj.pose.orientation.w = quaternion_rotation[0]
-
-
             # self.goal_target.publish(obj)
             # sleep(0.5)
 
@@ -929,16 +922,18 @@ class GazeborosEnv(gym.Env):
 
         self.person = Robot('person_{}'.format(self.agent_num),
                             max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+        
+        self.person_simulated = Robot('person_simulated_{}'.format(self.agent_num),
+                            max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
 
         relative = self.person
-
-        if self.use_goal:
-            relative = self.person
         self.robot = Robot('tb3_{}'.format(self.agent_num),
                            max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
         
         self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
                            max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        
+        
 
     def find_random_point_in_circle(self, radious, min_distance, around_point):
         max_r = 2
@@ -1374,31 +1369,41 @@ class GazeborosEnv(gym.Env):
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
     
-    def get_observation_relative_robot(self, states_to_simulate):
+    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None):
 
         while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
             if self.is_reseting:    return None
             time.sleep(0.001)
         
-        # Manual copy of key information
+
+        # // Copy all data
         self.robot_simulated.state_ = self.robot.state_
         self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
         self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
         self.robot_simulated.velocity_history = self.robot.velocity_history.deepcopy()
         # self.robot_simulated.all_pose_ = deepcopy(self.robot.all_pose_)
 
+        self.person_simulated.state_ = self.person.state_
+        self.person_simulated.orientation_history = self.person.orientation_history.deepcopy()
+        self.person_simulated.pos_history = self.person.pos_history.deepcopy()
+        self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
+        # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
+
+        # // Simulate moves
         for state in states_to_simulate:
             self.robot_simulated.set_state(state)
 
+        for state in states_to_simulate_person:
+            self.person_simulated.set_state(state)
 
         pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
         heading_robot = self.robot_simulated.state_["orientation"]
 
-        pos_his_person = np.asarray(self.person.pos_history.get_elemets())
-        heading_person = self.person.state_["orientation"]
+        pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets())
+        heading_person = self.person_simulated.state_["orientation"]
 
         robot_vel = np.asarray(self.robot_simulated.get_velocity())
-        person_vel = np.asarray(self.person.get_velocity())
+        person_vel = np.asarray(self.person_simulated.get_velocity())
         poses = np.concatenate((pos_his_robot, pos_his_person))
         if self.use_noise:
             poses += np.random.normal(loc=0, scale=0.1, size=poses.shape)
