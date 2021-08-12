@@ -14,16 +14,12 @@ import catboost
 from sklearn.metrics import mean_squared_error
 import numpy as np
 
-
-
 from sklearn.model_selection import train_test_split, GridSearchCV
 import pickle, os
 
-
-TRAIN_MLP = False 
 EPOCHS = 550 # 400
 BATCH_SIZE = 64
-
+TRAIN_MLP = False 
 TRAIN_CATBOOST = False
 TRAIN_RFR = False
 TRAIN_POLY = True

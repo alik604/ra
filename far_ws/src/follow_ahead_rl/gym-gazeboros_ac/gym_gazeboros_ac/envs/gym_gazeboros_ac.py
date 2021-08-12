@@ -1369,7 +1369,7 @@ class GazeborosEnv(gym.Env):
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
     
-    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None):
+    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None, relative_to_person=False):
 
         while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
             if self.is_reseting:    return None
@@ -1413,17 +1413,22 @@ class GazeborosEnv(gym.Env):
             person_vel += np.random.normal(loc=0, scale=0.1, size=person_vel.shape)
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
         pos_rel = []
+
+        relative_to = self.robot_simulated
+        if relative_to_person:
+            relative_to = self.person_simulated
         for pos in (poses):
-            relative = GazeborosEnv.get_relative_position(pos, self.robot_simulated)# TODO_changed from self.robot.relative
+            relative = GazeborosEnv.get_relative_position(pos, relative_to)# TODO_changed from self.robot.relative to self.robot_simulated
             pos_rel.append(relative)
         pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
+
         #TODO: make the velocity normalization better
         velocities = np.concatenate((person_vel, robot_vel))/self.robot_simulated.max_angular_vel
-        if self.use_orientation_in_observation:
+        if self.use_orientation_in_observation: # True 
             velocities_heading = np.append(velocities, heading_relative) # This was not changed, since it's extra information...
         else:
             velocities_heading = velocities
-        final_ob =  np.append(np.append(pos_history, velocities_heading), self.prev_action)
+        final_ob = np.append(np.append(pos_history, velocities_heading), self.prev_action)
 
         return final_ob
 
@@ -1463,7 +1468,7 @@ class GazeborosEnv(gym.Env):
         pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
         # TODO: make the velocity normalization better
         velocities = np.concatenate((person_vel, robot_vel))/self.robot.max_angular_vel
-        if self.use_orientation_in_observation:
+        if self.use_orientation_in_observation: # True
             velocities_heading = np.append(velocities, heading_relative)
         else:
             velocities_heading = velocities

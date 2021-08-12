@@ -1,12 +1,27 @@
+import random, pickle, os
+from time import sleep
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
 import gym
 import gym_gazeboros_ac
-import numpy as np
-import matplotlib.pyplot as plt
-from time import sleep
-import random, pickle
+
 np.set_printoptions(linewidth=np.inf)
 
+PATH_Poly = './model_weights/personIntentNetwork/PolynomialRegressor'
 ENV_NAME = 'gazeborosAC-v0'
+
+def predict_person(state):
+  poly_reg = PolynomialFeatures(degree=2)
+  if os.path.isfile(PATH_Poly):
+      regr = pickle.load(open(PATH_Poly, 'rb'))
+  else:
+    print(f'[Error!] PolynomialRegressor save not found')
+    raise Exception
+
+  y_pred = regr.predict(poly_reg.fit_transform(state)) # [:, idx]
+  return y_pred
 
 def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   """ MCTS
@@ -19,9 +34,9 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
-
+  # TODO add person predictions
+   # save and pass the person pos like `robot_pos`
   # TODO path_cb should give orientation
-  # TODO add human predictions
   # TODO check env.get_observation_relative_robot()
   # TODO deal with orientation when simulating
   # TODO add Q-network()
@@ -38,7 +53,14 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   print(f'trajectories: {trajectories}')
   print(f'len(trajectories): {len(trajectories)}')
   
-  # state = env.get_observation_relative_robot()
+
+  # TODO get person's move and execute action
+  person_state_3value = None
+  # state = env.get_observation_relative_robot(relative_to_person=True)
+  # person_state_3value = predict_person(state)
+  # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
+  
+
   # TODO get Q(state))
   QValues = np.random.rand(len(trajectories))
   QValues /= np.sum(QValues)
@@ -56,7 +78,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   for idx in idices:
     path_to_simulate = trajectories[idx]
     print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
-    reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
+    reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3value, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
     rewards.append(reward)
   best_idx = np.argmax(rewards)
   recommended_move = idices[best_idx]
@@ -64,13 +86,15 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   print(f'recommended_move is {recommended_move}')
   return recommended_move
     
-def MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore, sum_of_qvals=0, exploring_idx=-1):
+def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3value, Nodes_to_explore, sum_of_qvals=0, exploring_idx=-1):
   """ MCTS_recursive
   Args:
       path_to_simulate (np.array): path to take (simulated) to get to the start point
         path_to_simulate[0] is x 
         path_to_simulate[0] is y
+      robot_pos: x, y
       trajectories (np.array): precomputeed list of moves
+      person_state_3value (np.array): [x, y, theta]. this is from `hinn_data_collector.py` which has [xy[0], xy[1], state[2]]
       Nodes_to_explore (int): top N actions to consider 
       sum_of_qvals (int, optional): sum of rewards. Defaults to 0.
 
@@ -79,7 +103,8 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore, 
 
   """  
   QValues = []
-  states = []
+  states_to_simulate = []
+  states_to_simulate_person = []
 
   # offset path_to_simulate 
   for idx in range(len(path_to_simulate[0])):
@@ -97,9 +122,20 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore, 
     state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
     state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
     state["orientation"] = 0 #env.robot.state_["orientation"] # = 0  TODO
-    states.append(state)
+    states_to_simulate.append(state)
     print(f'state["position"] {state["position"]}')
-  # state = env.get_observation_relative_robot(states)
+
+  # person_state_3value [xy[0], xy[1], state[2]]
+  state = {} 
+  state["velocity"] = (person_state_3value[0], person_state_3value[1]) 
+  state["position"] = (person_pos[0], person_pos[1]) # TODO why will they be at this future point of time? 
+  state["orientation"] = person_state_3value[2] #env.robot.state_["orientation"] # = 0 
+  states_to_simulate_person.append(state)
+
+  state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate, states_to_simulate_person=states_to_simulate_person)
+  person_state_3value = predict_person(state) # update then with next, will be used for recursion 
+  # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
+  
   # TODO get Q value here
   QValues = np.random.rand(len(trajectories))
   QValues /= np.sum(QValues)
@@ -123,7 +159,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore, 
     for idx in idices:
       path_to_simulate = trajectories[idx]
       print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
-      reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
+      reward = MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3value, Nodes_to_explore-1, sum_of_qvals+QValues[idx], idx)
       rewards.append(reward)
     best_idx = np.argmax(rewards)
     recommended_move = idices[best_idx]
