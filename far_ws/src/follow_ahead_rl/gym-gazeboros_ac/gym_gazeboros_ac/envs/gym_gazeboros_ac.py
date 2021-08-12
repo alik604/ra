@@ -848,22 +848,7 @@ class GazeborosEnv(gym.Env):
 
     def model_states_cb(self,  states_msg):
         """sets the new state"""
-        
-        # # TODO DWA
-        # # Hardcoded as circle
-        # ros_config = dict(max_speed=self.max_linear_vel, min_speed=0, max_yaw_rate=self.max_angular_vel,
-        #     max_accel = 0.2, max_delta_yaw_rate = 0.7,
-        #     v_resolution = 0.01, yaw_rate_resolution = 0.1 * math.pi / 180.0,
-        #     dt = 0.1, predict_time = 3.0,
-        #     to_goal_cost_gain = 0.15, speed_cost_gain = 1.0, obstacle_cost_gain = 1.0,
-        #     robot_stuck_flag_cons = 0.001, robot_radius = 1.02) # ob not set
-        # config = dwa.Config(ros_config) 
-
-        # # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)] # omega is angular_velocity
-        # x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
-        # # goal position [x(m), y(m)]
-        # goal = np.array([gx, gy])
-
+    
         for model_idx in range(len(states_msg.name)):
             found = False
             for robot in [self.robot, self.person]:
