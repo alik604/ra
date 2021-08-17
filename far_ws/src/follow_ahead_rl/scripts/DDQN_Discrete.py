@@ -11,11 +11,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-
-
-
-
-
 if __name__ == '__main__':
     # from https://raw.githubusercontent.com/philtabor/Youtube-Code-Repository/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py and https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/main_torch_dqn_lunar_lander_2020.py
     class DeepQNetwork(nn.Module):

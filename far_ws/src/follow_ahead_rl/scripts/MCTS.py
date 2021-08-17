@@ -34,6 +34,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
+  # TODO add move_base_goal.target_pose.header.stamp = rospy.Time.now() to my traj gen
   # TODO add person pos, and robot velocity & orientation 
    # save and pass the person pos like `robot_pos`?
   # TODO path_cb, which gets the points to go to the goal, can give orientation,but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
@@ -43,13 +44,23 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   # TODO add Q-network()
 
   # TODO take step 
+  # 
+  # 
+  # TODO visusal the path of the robot and the human and reward  
 
-  # TODO sum_of_qvals is naive. mayne we should renormalize or discount
+  # TODO sum_of_qvals is naive. mayne we should renormalize or discount 
+      # 0.4*r1+0.4*r2*d**1+0.4*r3*d**2          // we can just def get_reward(self):
       # 0.4+0.4+0.4 = 1.2 # surely this is better, i would take the step to get 0.4 and recompute
       # 0.2+0.5+0.6 = 1.3
 
       # 0.4+0.40+0.15 = 1.05 # surely this is better, the last is superior by far
       # 0.4+0.45+0.10 = 1.00
+      # instead of jsut the policy output, we coinder the rewards outputast as well. 
+
+      # 0.1 , 0.1, 0.15, 0.05 
+      # renormaizel 
+      # .15 is 150% better .10 ... 15/.10 = .15
+
 
   print(f'\n\n[MCTS]')
   print(f'trajectories: {trajectories}')
@@ -108,7 +119,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
   states_to_simulate_person = []
 
   # offset path_to_simulate 
-  for idx in range(len(path_to_simulate[0])):
+  for idx in range(len(path_to_simulate[0])): # TODO this is wrong 
     path_to_simulate[0][idx] += robot_pos[0]
     path_to_simulate[1][idx] += robot_pos[1]
   print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')

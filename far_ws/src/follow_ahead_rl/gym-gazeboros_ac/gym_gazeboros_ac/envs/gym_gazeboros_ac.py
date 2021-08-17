@@ -46,7 +46,7 @@ from nav_msgs.msg import Path
 
 from gazebo_msgs.srv import SetModelState
 
-from squaternion import Quaternion
+from squaternion import Quaternion # quat - to eular # i need only 1 of the indeex, probably only the last 
 from simple_pid import PID
 
 import matplotlib.pyplot as plt
@@ -323,7 +323,9 @@ class Robot():
         self.is_pause = False
 
     def take_action(self, action):
-        if self.is_pause:
+        # action is x ,y, ralative cord... NOT line and angular velocity 
+
+        if self.is_pause: # this is used 
             return
 
         if self.use_goal: # False
@@ -1631,7 +1633,8 @@ class GazeborosEnv(gym.Env):
         else:
             return True
 
-    def step(self, action):
+    def step(self, action): # rename to robot_step. make new one for simulated step that will call this step, that actually does the work/ move 
+
         self.number_of_steps += 1
         self.take_action(action)
         # instead of one reward get all the reward during wait

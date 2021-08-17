@@ -1,0 +1,78 @@
+# TODO add move_base_goal.target_pose.header.stamp = rospy.Time.now() to my traj gen
+# TODO add person pos, and robot velocity & orientation 
+# save and pass the person pos like `robot_pos`?
+# TODO path_cb, which gets the points to go to the goal, can give orientation,but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
+# TODO check env.get_observation_relative_robot()
+# TODO deal with orientation when simulating
+
+# TODO add Q-network()
+
+# TODO take step 
+
+
+# TODO visusal the path of the robot and the human and reward  
+
+# TODO sum_of_qvals is naive. mayne we should renormalize or discount 
+    # 0.4*r1+0.4*r2*d**1+0.4*r3*d**2          // we can just def get_reward(self):
+    # 0.4+0.4+0.4 = 1.2 # surely this is better, i would take the step to get 0.4 and recompute
+    # 0.2+0.5+0.6 = 1.3
+
+    # 0.4+0.40+0.15 = 1.05 # surely this is better, the last is superior by far
+    # 0.4+0.45+0.10 = 1.00
+    # instead of jsut the policy output, we coinder the rewards outputast as well. 
+
+    # 0.1 , 0.1, 0.15, 0.05 
+    # renormaizel 
+    # .15 is 150% better .10 ... 15/.10 = .15
+def set_state(self, state):
+
+def build_action_discrete_action_space(self, numb_tickers=3, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+
+self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+                           max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+
+def get_observation_relative_robot(self):
+
+
+
+
+
+
+
+
+
+
+
+# end_path_to_simulate_x = path_to_simulate[0][-1]
+# end_path_to_simulate_y = path_to_simulate[1][-1]
+# for idx in range(len(trajectories)):
+#   trajectories[idx][0] += end_path_to_simulate_x
+#   trajectories[idx][1] += end_path_to_simulate_y
+# print(f'path_to_simulate: {path_to_simulate} | will adjust with x {end_path_to_simulate_x} and y {end_path_to_simulate_y}')
+
+
+#   for idx in range(len(adj_trajectories)):
+#     print(f'..adjusted trajectories {adj_trajectories[idx]}')
+#     # print(f" \t{adj_trajectories[idx][0]} \n\t{adj_trajectories[idx][1]}\n")
+
+#     states = []
+#     for i in range(len(adj_trajectories[idx][0])):
+#       # print(f'x {adj_trajectories[idx][0][i]}')
+#       adj_trajectories = adj_trajectories.astype(int) # TODO remove this 
+#       state = {} 
+#       state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
+#       state["position"] = (adj_trajectories[idx][0][i], adj_trajectories[idx][1][i])
+#       state["orientation"] = 3 #env.robot.state_["orientation"] # = 0  TODO
+#       states.append(state)
+#       # break # only 1 
+#     # print(f'adjusted adj_trajectories {adj_trajectories}')
+#     # state = env.get_observation_relative_robot(states)
+#     # TODO get Q value here
+#     QValues.append(sum(adj_trajectories[idx][0]))
+#     # print(f'obs:\n{state}')
+#   print(f'QValues:\n{QValues}')
+
+#   # select top N moves
+#   idices = np.argsort(QValues)[::-1] # sort
+#   idices = idices[:Nodes_to_explore] # select top N
+#   print(f'idices to explore {idices}')
