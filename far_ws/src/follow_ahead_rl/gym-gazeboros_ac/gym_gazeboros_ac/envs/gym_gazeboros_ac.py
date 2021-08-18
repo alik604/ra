@@ -1655,12 +1655,6 @@ class GazeborosEnv(gym.Env):
         y = math.sin(orientation) * xy[0] + math.cos(orientation) * xy[1]
 
         return [x, y]
-    """
-    the function will check the self.robot_mode:
-        0: will not move robot
-        1: robot will try to go to a point after person
-    """
-
 
     def path_follower(self, idx_start, robot, person_init_pose):
         """
@@ -2251,13 +2245,14 @@ class GazeborosEnv(gym.Env):
         angle_robot_person = math.atan2(pos_rel[1], pos_rel[0])
         return (GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
 
-    def get_reward(self):
+    def get_reward(self, simulate=False):
         reward = 0
-        angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(
-            self.robot, self.person)
+        if simulate: 
+            angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot_simulated, self.person_simulated)
+        else:   
+            angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot, self.person)
         angle_robot_person = math.atan2(pos_rel[1], pos_rel[0])
-        angle_robot_person = np.rad2deg(
-            GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
+        angle_robot_person = np.rad2deg(GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
         distance = math.hypot(pos_rel[0], pos_rel[1])
         # Negative reward for being behind the person
         if self.is_collided():
