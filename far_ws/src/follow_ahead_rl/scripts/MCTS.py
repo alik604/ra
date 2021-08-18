@@ -19,9 +19,13 @@ else:
   raise Exception
 
 def predict_person(state):
-  print(f'state is \n{state}')
+  print(f'state.shape is {state.shape}')
+  state = state.reshape(1, -1)
+  # print(f'state is \n{state}')
   state = PolynomialFeatures(degree=2).fit_transform(state) # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
+  print(f'state.shape is {state.shape}')
   y_pred = REGR.predict(state)
+  print(f'y_pred {y_pred}')
   return y_pred
 
 def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
@@ -67,7 +71,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
 
   # get person's move
   person_state_3value = None
-  state = env.get_observation_relative_robot(relative_to_person=True)
+  state = env.get_observation_relative_robot(relative_to_person=True, HINN=True)
   person_state_3value = predict_person(state)
   # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
   

@@ -166,12 +166,13 @@ if __name__ == '__main__':
 
         poly_reg = PolynomialFeatures(degree=2)
         X_poly_train = poly_reg.fit_transform(X_train)
+        print(f'X_train.shape {np.array(X_train).shape}')
         print(f'X_poly_train.shape {X_poly_train.shape}')
         
         if os.path.isfile(PATH):
             print(f'PolynomialRegressor save found. Skipping training...')
             regr = pickle.load(open(PATH, 'rb'))
-            print(f'coef: {regr.coef_} | intercept: {regr.coef_}')
+            # print(f'coef: {regr.coef_} | intercept: {regr.coef_}')
         else:
             print(f'PolynomialRegressor save not found. Training...')
             regr = LinearRegression()
