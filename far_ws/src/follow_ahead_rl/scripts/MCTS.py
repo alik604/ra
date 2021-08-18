@@ -13,20 +13,20 @@ ENV_NAME = 'gazeborosAC-v0'
 PATH_Poly = './model_weights/HumanIntentNetwork/PolynomialRegressor'
 
 if os.path.isfile(PATH_Poly):
-    REGR = pickle.load(open(PATH_Poly, 'rb'))
+  REGR = pickle.load(open(PATH_Poly, 'rb'))
 else:
-  print(f'[Error!] PolynomialRegressor save not found')
+  # print(f"[Error!] PolynomialRegressor save not found")
   raise Exception
 
 def predict_person(state):
-  print(f'state.shape is {state.shape}')
+  # print(f'state.shape is {state.shape}')
   state = state.reshape(1, -1)
-  # print(f'state is \n{state}')
+  # print(f'state is {state}')
   state = PolynomialFeatures(degree=2).fit_transform(state) # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
-  print(f'state.shape is {state.shape}')
+  # print(f'state.shape is {state.shape}')
   y_pred = REGR.predict(state)
-  print(f'y_pred {y_pred}')
-  return y_pred
+  # print(f'y_pred {y_pred.flatten()}')
+  return y_pred.flatten()
 
 def MCTS(trajectories, Nodes_to_explore):
   """ MCTS
@@ -42,7 +42,6 @@ def MCTS(trajectories, Nodes_to_explore):
   # TODO add person pos, and robot velocity 
    # save and pass the person pos like `robot_pos`?
   # TODO deal with orientation when simulating
-  # TODO take step 
 
   # TODO add Q-network()
 
@@ -69,7 +68,7 @@ def MCTS(trajectories, Nodes_to_explore):
 
   # get person's move
   person_state_3value = None
-  state = env.get_observation_relative_robot(relative_to_person=True, HINN=True)
+  state = env.get_observation_relative_robot(HINN=True) # TODO it is not relative to person, because that's not what the traning data was. 
   person_state_3value = predict_person(state)
   # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
   
@@ -86,7 +85,7 @@ def MCTS(trajectories, Nodes_to_explore):
 
   # Recursively search
   rewards = []
-  robot_pos = env.robot.state_['position'] # np.array([1, 1])
+  robot_pos = env.robot.state_["position"] # np.array([1, 1])
   person_pos = env.person.state_["position"]
   for idx in idices:
     path_to_simulate = trajectories[idx]
@@ -132,30 +131,31 @@ def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, perso
   # print(f'trajectories {list(trajectories)}')
   
   # // robot 
-  print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+  # print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+  print(f'path_to_simulate theta: {path_to_simulate[2]}')
   for idx in range(len(path_to_simulate[0])):
     state = {} 
-    state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO figure this out
+    state["velocity"] = (0.9, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO figure this out
     state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
-    state["orientation"] = path_to_simulate[3][idx]  
+    state["orientation"] = path_to_simulate[2][idx]  
     states_to_simulate.append(state)
     print(f'state["position"] {state["position"]}')
 
   # // person
   #  person_state_3value [xy[0], xy[1], state[2]]
+
+  print(f'person_state_3value is {person_state_3value}')
   state = {} 
   state["velocity"] = (person_state_3value[0], person_state_3value[1]) 
   state["position"] = (person_pos[0], person_pos[1]) 
   state["orientation"] = person_state_3value[2] #env.robot.state_["orientation"] # = 0 
   states_to_simulate_person.append(state)
 
-  state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate, states_to_simulate_person=states_to_simulate_person)
+  state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate, states_to_simulate_person=states_to_simulate_person, HINN=True)
   person_state_3value = predict_person(state) # update person_state_3value, will be used for recursion 
   # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
 
-  # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
-  person_pos = env.person.state_["position"]
-  
+  state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate, states_to_simulate_person=states_to_simulate_person) # different 
   # TODO get Q value here
   QValues = np.random.rand(len(trajectories))
   QValues /= np.sum(QValues)
@@ -169,11 +169,13 @@ def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, perso
 
   if Nodes_to_explore == 1:
     print(f'[tail] path_to_simulate: {path_to_simulate}')
-    return 0.975*(QValues[idices[0]]*env.get_reward(simulate=False)) + past_rewards # TODO
+    return 0.975*(QValues[idices[0]]*env.get_reward(simulate=False)) + past_rewards 
   else:
     # Recursively search
     rewards = []
-    robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[0][-1]]) # env.robot_simulated.state_['position']
+    robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[0][-1]])
+    # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
+    person_pos = env.person.state_["position"]
     for idx in idices:
       path_to_simulate = trajectories[idx]
       print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
@@ -198,7 +200,7 @@ if __name__ == '__main__':
       trajectories.extend([[x[i], y[i], theta[i]]])
     # plt.show()
     trajectories = trajectories[1:]
-    trajectories = trajectories[:3]
+    # trajectories = trajectories[:3]
 
     # vect1 = 
     # trajectories = [[[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
@@ -221,27 +223,34 @@ if __name__ == '__main__':
     env.set_agent(0)
     action = [0.0, 0.0] # linear_velocity, angular_velocity. from 0 to 1, a % of the max_linear_vel (0.8) & max_angular_vel (1.8)
     while True:
-        # env.set_person_mode(mode % 5)
-        mode += 1
-        state = env.reset()
-        # env.person.pause()
-        # env.person.resume()
+      # env.set_person_mode(mode % 5)
+      mode += 1
+      state = env.reset()
+      # env.person.pause()
+      # env.person.resume()
 
-        for i in range(1):# EPISODE_LEN
-            
+      for i in range(10):# EPISODE_LEN
+          
 
-            # print(f'state:\n{state}')
-            recommended_move = MCTS(trajectories, Nodes_to_explore=3)
-            # TODO take recommended_move
-            print(f'in main loop recommended_move is {recommended_move}')
-            # state, reward, done, _ = env.step(action)
-            # sleep(1000.00)
+          # print(f'state:\n{state}')
+          recommended_move = MCTS(trajectories, Nodes_to_explore=3)
+          # TODO take recommended_move
+          print(f'in main loop recommended_move is {recommended_move}')
 
+          # take action
+          # for cords in trajectories[recommended_move]: # TODO confirm this is right
+          cords = trajectories[recommended_move][-1]
+          action = [cords[0], cords[1]]
+          state, reward, done, _ = env.step(action)
+
+          # sleep(2.00)
+      print("DONE")
+      env.close()
+      exit(0)
         #     if done:
         #         print("DONE")
         #         break    
         #     print("END")
-            exit(0)
         # env.close()
 
 
