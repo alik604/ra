@@ -635,16 +635,12 @@ class GazeborosEnv(gym.Env):
         self.is_use_test_setting = True
     
     def build_action_discrete_action_space(self, numb_tickers=3, radai_0=0.4, radai_1=0.6, radai_2=0.8):
-        # thread = threading.Thread(target=self.set_goal, args=(1, 0, 0))
-        # thread.daemon = False
-        # thread.start()   
-        # thread.join()
         
         # while self.queue_of_x.empty(): # wont exit
         #     sleep(5)
         #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
 
-        sleepy_time = 2
+        sleepy_time = 1
         # state = {} # does not work...
         # state["velocity"] = (0.5, 0) # linear_vel, angular_vel
         # state["position"] = (5, 5)
@@ -655,8 +651,10 @@ class GazeborosEnv(gym.Env):
 
         self.queue_of_x = queue.Queue()
         self.queue_of_y = queue.Queue()
+        self.queue_of_theta = queue.Queue()
         master_list_x = []
         master_list_y = []
+        master_list_theta = []
         phase_shift = 2*np.pi/numb_tickers
         radai = [radai_0, radai_1, radai_2] 
 
@@ -666,13 +664,14 @@ class GazeborosEnv(gym.Env):
 
         init_pos = self.robot.state_['position']
         print(f"robot's x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n")
-        x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
-        y = np.array(list(self.queue_of_y.queue)) # init_pos[1] -
-        master_list_x.append(list(x))
-        master_list_y.append(list(y))
-        print(f'x and y are:\n\t{x}\n\t{y}\n')
-
+        # x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
         sleep(sleepy_time)
+        master_list_x.append(list(self.queue_of_x.queue))
+        master_list_y.append(list(self.queue_of_y.queue))
+        master_list_theta.append(list(self.queue_of_theta.queue))
+        # print(f'x and y are:\n\t{x}\n\t{y}\n')
+
+        
         counter = 0
         for radius in radai:
             for tick in range(numb_tickers):
@@ -680,24 +679,36 @@ class GazeborosEnv(gym.Env):
 
                 self.queue_of_x = queue.Queue()
                 self.queue_of_y = queue.Queue()
+                self.queue_of_theta = queue.Queue()
                 self.set_goal(orientation=orientation, x=radius*np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
                 sleep(sleepy_time)
-                # init_pos = self.robot.state_['position']
-                x = np.array(list(self.queue_of_x.queue)) # init_pos[0] - 
-                y = np.array(list(self.queue_of_y.queue)) # init_pos[1] - 
-                master_list_x.append(list(x.round(2)))
-                master_list_y.append(list(y.round(2)))
-                print(f'[{counter}] x and y are:\n\t{x}\n\t{y}\n')
+                master_list_x.append(list(self.queue_of_x.queue))
+                master_list_y.append(list(self.queue_of_y.queue))
+                master_list_theta.append(list(self.queue_of_theta.queue))
+                # print(f'[{counter}] x and y are:\n\t{x}\n\t{y}\n')
 
                 counter += 1
-        plt.show()
+        # plt.show()
 
-        for i in range(len(master_list_x)):
-            plt.plot(master_list_x[i], master_list_y[i])
-        plt.show()
+        # for i in range(len(master_list_x)):
+        #     plt.plot(master_list_x[i], master_list_y[i])
+        # plt.show()
 
-        x = zip(master_list_x, master_list_y)
+
+
+        # for i in range(len(master_list_w)):
+        #     for ii in range(len(master_list_w[0])):
+        #         # w, x, y, z
+        #         print(f'w & z {master_list_w[i][ii]} | {master_list_z[i][ii]}')
+        #         euler = Quaternion(master_list_w[i][ii], 0.0,
+        #                         0.0, master_list_z[i][ii]).to_euler()
+        #         print(f'euler {euler} | {type(euler)}')
+
+        x = zip(master_list_x, master_list_y, master_list_theta)
         x = tuple(x)
+        # for i in range(len(trajectories)):
+        #     for ii in range(len(trajectories[i])):
+        #         trajectories[i][ii] = np.array(trajectories[i][ii])
 
         with open('action_discrete_action_space.pickle', 'wb') as handle:
             pickle.dump(x, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -716,15 +727,15 @@ class GazeborosEnv(gym.Env):
                 nsecs: 0
             frame_id: 'tb3_0/base_link'
             pose:
-            position:
-                x: 10.0
-                y: 10.0
-                z: 0.0
-            orientation:
-                x: 0.0
-                y: 0.0
-                z: 0.0
-                w: 1.0"
+                position:
+                    x: 10.0
+                    y: 10.0
+                    z: 0.0
+                orientation:
+                    x: 0.0
+                    y: 0.0
+                    z: 0.0
+                    w: 1.0"
 
             I might need to use /base_link as the frame 
         """        
@@ -738,7 +749,7 @@ class GazeborosEnv(gym.Env):
         
         obj = PoseStamped()
         obj.header.frame_id = 'map' # 'tb3_0/base_link'
-        # obj.header.stamp = rospy.Time.now()
+        obj.header.stamp = rospy.Time.now()
         obj.pose.position.x = x
         obj.pose.position.y = y
         obj.pose.position.z = z
@@ -768,25 +779,33 @@ class GazeborosEnv(gym.Env):
          
     # a callback for set_goal(), when we Subscriber to "local_plan"
     def path_cb(self, msg):
-        # print(f'msg is: \n{msg}')
+        # print(f'msg.poses[0].pose is: \n{msg.poses[0].pose}')
 
         if self.plot_toggle: # == 5 TODO maybe not the first, but i think they are all the same. use print below to see
             self.plot_toggle=False
             for pos in msg.poses:
                 scaler = 1 # self.robot.max_rel_pos_range
                 x, y = pos.pose.position.x, pos.pose.position.y
+                z, w = pos.pose.orientation.z, pos.pose.orientation.w
                 # array = self.get_global_position([x*scaler, y*scaler], self.robot) # TODO add orientation
                 # array = self.get_global_position(self.denormlize([x, y]), self.robot)
                 # print(f' (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f} ')
                 # x, y = array[0], array[1]
+
+                # w, x, y, z
+                euler = Quaternion(pos.pose.orientation.w, pos.pose.orientation.x,
+                        pos.pose.orientation.y, pos.pose.orientation.z).to_euler()
+                print(f'euler {euler} | {type(euler)}')
                 self.queue_of_x.put(round(x, 2))
                 self.queue_of_y.put(round(y, 2))
+                self.queue_of_theta.put(round(euler[2], 2))
             print(f'done loading queues')
 
             ## See path to final position
             # self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
             # obj = PoseStamped()
             # obj.header.frame_id = 'map'
+            # obj.header.stamp = rospy.Time.now()
             # obj.pose.position.x = x
             # obj.pose.position.y = y
             # obj.pose.position.z = 0
@@ -1375,12 +1394,14 @@ class GazeborosEnv(gym.Env):
         self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
         # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
 
-        # // Simulate moves
-        for state in states_to_simulate:
-            self.robot_simulated.set_state(state)
+        # // Simulate 
+        if states_to_simulate is not None: 
+            for state in states_to_simulate:
+                self.robot_simulated.set_state(state)
 
-        for state in states_to_simulate_person:
-            self.person_simulated.set_state(state)
+        if states_to_simulate_person is not None: 
+            for state in states_to_simulate_person:
+                self.person_simulated.set_state(state)
 
         pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
         heading_robot = self.robot_simulated.state_["orientation"]

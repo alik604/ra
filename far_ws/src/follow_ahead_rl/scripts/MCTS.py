@@ -10,7 +10,7 @@ import gym_gazeboros_ac
 np.set_printoptions(linewidth=np.inf)
 
 ENV_NAME = 'gazeborosAC-v0'
-PATH_Poly = './model_weights/personIntentNetwork/PolynomialRegressor'
+PATH_Poly = './model_weights/HumanIntentNetwork/PolynomialRegressor'
 
 if os.path.isfile(PATH_Poly):
     REGR = pickle.load(open(PATH_Poly, 'rb'))
@@ -19,6 +19,7 @@ else:
   raise Exception
 
 def predict_person(state):
+  print(f'state is \n{state}')
   state = PolynomialFeatures(degree=2).fit_transform(state) # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
   y_pred = REGR.predict(state)
   return y_pred
@@ -34,7 +35,6 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
-  # TODO add move_base_goal.target_pose.header.stamp = rospy.Time.now() to my traj gen
   # TODO add person pos, and robot velocity & orientation 
    # save and pass the person pos like `robot_pos`?
   # TODO path_cb, which gets the points to go to the goal, can give orientation,but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
@@ -44,8 +44,7 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   # TODO add Q-network()
 
   # TODO take step 
-  # 
-  # 
+
   # TODO visusal the path of the robot and the human and reward  
 
   # TODO sum_of_qvals is naive. mayne we should renormalize or discount 
@@ -186,45 +185,50 @@ if __name__ == '__main__':
     trajectories = []
     with open('action_discrete_action_space.pickle', 'rb') as handle:
       x = pickle.load(handle)
-      x, y = list(zip(*x))
-      for i in range(len(x)):
-        # print(f'\t{x[i]}, {y[i]}')
-        plt.plot(x[i], y[i])
-        trajectories.extend([[x[i], y[i]]])
-      # plt.show()
-      trajectories = trajectories[1:]
-      trajectories = trajectories[:3]
+      x, y, theta = list(zip(*x))
+    for i in range(len(x)):
+      # print(f'\t{x[i]}, {y[i]}')
+      # plt.plot(x[i], y[i])
+      trajectories.extend([[x[i], y[i], theta[i]]])
+    # plt.show()
+    trajectories = trajectories[1:]
+    trajectories = trajectories[:3]
 
-      # vect1 = 
-      trajectories = [[[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
-                      [[2.0, 2.0, 2.0, 2.0], [2.0, 2.0, 2.0, 2.0]],
-                      [[3.0, 3.0, 3.0, 3.0], [3.0, 3.0, 3.0, 3.0]],
-                      [[10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0]]]
+    # vect1 = 
+    # trajectories = [[[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]],
+    #                 [[2.0, 2.0, 2.0, 2.0], [2.0, 2.0, 2.0, 2.0]],
+    #                 [[3.0, 3.0, 3.0, 3.0], [3.0, 3.0, 3.0, 3.0]],
+    #                 [[10.0, 10.0, 10.0, 10.0], [10.0, 10.0, 10.0, 10.0]]]
 
-      # print(f'trajectories: {trajectories}')
-      print(f'numb of trajectories is: {len(trajectories)}')
-      trajectories = np.array(trajectories)
+    # print(f'trajectories: {trajectories}')
+    # print(f'numb of trajectories is: {len(trajectories)}')
+    # trajectories = np.array(trajectories, dtype=object)
+    # for i in range(len(trajectories)):
+    #   for ii in range(len(trajectories[i])):
+    #     trajectories[i][ii] = np.array(trajectories[i][ii])
+        # print(trajectories[i][ii])
+    print(f'trajectories: {trajectories}')
     
     print('START Move Test')
     mode = 4
-    # env = gym.make(ENV_NAME).unwrapped
-    # env.set_agent(0)
+    env = gym.make(ENV_NAME).unwrapped
+    env.set_agent(0)
     action = [0.0, 0.0] # linear_velocity, angular_velocity. from 0 to 1, a % of the max_linear_vel (0.8) & max_angular_vel (1.8)
     while True:
         # env.set_person_mode(mode % 5)
         mode += 1
-        # state = env.reset()
+        state = env.reset()
         # env.person.pause()
         # env.person.resume()
 
         for i in range(1):# EPISODE_LEN
-            # state, reward, done, _ = env.step(action)
+            
 
             # print(f'state:\n{state}')
             recommended_move = MCTS(trajectories, Nodes_to_explore=3)
             # TODO take recommended_move
             print(f'in main loop recommended_move is {recommended_move}')
-
+            # state, reward, done, _ = env.step(action)
             # sleep(1000.00)
 
         #     if done:

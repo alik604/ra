@@ -52,13 +52,14 @@ if __name__ == '__main__':
 
     # with open('action_discrete_action_space.pickle', 'rb') as handle:
     #     x = pickle.load(handle)
-    # x, y = list(zip(*x))
+    # x, y, theta = list(zip(*x))
 
     # print(f'[in action_test.py]')
     # for i in range(len(x)):
     #   print(f'[{i}/{len(x)-1}]')
-    #   print(f'\t{x[i]}, {y[i]}')
+    #   # print(f'\t{x[i]}, {y[i]}')
     #   print(f'\t{tuple(zip(x[i], y[i]))}')
+    #   print(f'\t theta: {theta[i]}')
     #   plt.plot(x[i], y[i])
     # plt.show()
     # exit()
@@ -81,7 +82,7 @@ if __name__ == '__main__':
             state, reward, done, _ = env.step(action)
 
             x = env.build_action_discrete_action_space()
-            x, y = list(zip(*x))
+            x, y, theta = list(zip(*x))
 
             print(f'[in action_test.py]')
             # for i in range(len(x)):
