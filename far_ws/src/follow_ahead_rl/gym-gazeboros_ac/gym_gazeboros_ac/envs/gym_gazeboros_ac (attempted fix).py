@@ -55,8 +55,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Environment Parameters
-
-
 class EnvConfig:
     # Boolean to make robots spawn at constant locations
     USE_TESTING = False
@@ -308,12 +306,14 @@ class Robot():
         else:
             self.angular_pid = PID(2.5, 0, 0.03, setpoint=0)
             self.linear_pid = PID(2.5, 0, 0.05, setpoint=0)
+
         self.pos_history = History(
             self.window_size_history, self.update_rate_states)
         self.orientation_history = History(
             self.window_size_history, self.update_rate_states)
         self.velocity_history = History(
             self.window_size_history, self.update_rate_states)
+
         self.velocity_history.add_element((0, 0))
         self.pos_history.add_element(
             (init_pose["pos"][0], init_pose["pos"][1]))
@@ -1258,6 +1258,7 @@ class GazeborosEnv(gym.Env):
         self.position_thread = threading.Thread(target=self.path_follower, args=(
             self.current_path_idx, self.robot, init_pos_person,))
         self.position_thread.daemon = True
+
         self.is_reseting = False
         self.position_thread.start()
 
@@ -1418,6 +1419,7 @@ class GazeborosEnv(gym.Env):
 
     def set_robot_to_auto(self):
         self.robot_mode = 1
+
 
     def respect_orientation(self, xy, orientation):
         x = math.cos(orientation) * xy[0] - math.sin(orientation) * xy[1]
@@ -1661,8 +1663,7 @@ class GazeborosEnv(gym.Env):
             np.append(pos_history, velocities_heading), self.prev_action)
 
         if EnvConfig.RETURN_HINN_STATE:
-            final_ob = np.append(
-                np.append(person_vel, heading_person), pos_his_person)
+            final_ob = np.append(np.append(person_vel, heading_person), pos_his_person)
 
             # if EnvConfig.USE_OBSTACLES:
             final_ob = np.append(final_ob, self.person_scan)

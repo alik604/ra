@@ -39,15 +39,12 @@ def MCTS(trajectories, Nodes_to_explore, sum_of_qvals=0):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
-  # TODO add person pos, and robot velocity & orientation 
+  # TODO add person pos, and robot velocity 
    # save and pass the person pos like `robot_pos`?
-  # TODO path_cb, which gets the points to go to the goal, can give orientation,but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
-  # TODO check env.get_observation_relative_robot()
   # TODO deal with orientation when simulating
+  # TODO take step 
 
   # TODO add Q-network()
-
-  # TODO take step 
 
   # TODO visusal the path of the robot and the human and reward  
 
@@ -135,9 +132,9 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
   print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
   for idx in range(len(path_to_simulate[0])):
     state = {} 
-    state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO
+    state["velocity"] = (1.0, 0) # env.robot.state_["velocity"]# = (1.0, 0) # TODO figure this out
     state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
-    state["orientation"] = 0 #env.robot.state_["orientation"] # = 0  TODO path_cb, which gets the points to go to the goal, can give orientation, but i dont know how will i can make 2 quaternion_rotation values into 1 angular_velocity  
+    state["orientation"] = path_to_simulate[3][idx]  
     states_to_simulate.append(state)
     print(f'state["position"] {state["position"]}')
 
@@ -145,7 +142,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, trajectories, person_state_3valu
   #  person_state_3value [xy[0], xy[1], state[2]]
   state = {} 
   state["velocity"] = (person_state_3value[0], person_state_3value[1]) 
-  state["position"] = (person_pos[0], person_pos[1]) # TODO Where will the person be at this future point of time? 
+  state["position"] = (person_pos[0], person_pos[1]) # TODO Where will the person be at this future point of time? :'(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
   state["orientation"] = person_state_3value[2] #env.robot.state_["orientation"] # = 0 
   states_to_simulate_person.append(state)
 
