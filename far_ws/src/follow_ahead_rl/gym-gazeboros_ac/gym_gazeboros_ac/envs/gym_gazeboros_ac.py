@@ -1848,7 +1848,7 @@ class GazeborosEnv(gym.Env):
                 return None
             time.sleep(0.001)
 
-        if relative_to_person != HINN:
+        if relative_to_person is True and HINN is True:
             rospy.logwarn(
                 f'\n\n\nrelative_to_person is {relative_to_person} | HINN is {HINN}\nThis is odd')
 
@@ -1919,8 +1919,7 @@ class GazeborosEnv(gym.Env):
             np.append(pos_history, velocities_heading), self.prev_action)
 
         if HINN:
-            final_ob = np.append(
-                np.append(person_vel, heading_person), pos_his_person)
+            final_ob = np.append(np.append(person_vel, heading_person), pos_his_person)
             final_ob = np.append(final_ob, self.person_scan)
 
         return final_ob

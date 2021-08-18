@@ -39,6 +39,7 @@ def MCTS(trajectories, Nodes_to_explore):
   Returns:
       int: recommended_move, which of N actions to take; which of the `trajectories` to take
   """
+  # TODO the trajectories list is being changed somewhere and somehow.....
   # TODO add person pos, and robot velocity 
    # save and pass the person pos like `robot_pos`?
   # TODO deal with orientation when simulating
@@ -91,7 +92,7 @@ def MCTS(trajectories, Nodes_to_explore):
     path_to_simulate = trajectories[idx]
     print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
     reward = 1.01 * (QValues[idx] + env.get_reward(simulate=False))
-    reward = MCTS_recursive(path_to_simulate, robot_pos, person_pos, trajectories, person_state_3value, Nodes_to_explore-1, reward, idx)
+    reward = MCTS_recursive(robot_pos, person_pos, trajectories, person_state_3value, Nodes_to_explore-1, reward, idx)
     rewards.append(reward)
   best_idx = np.argmax(rewards)
   recommended_move = idices[best_idx]
@@ -99,7 +100,7 @@ def MCTS(trajectories, Nodes_to_explore):
   print(f'recommended_move is {recommended_move}')
   return recommended_move
     
-def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, person_state_3value, Nodes_to_explore, past_rewards, exploring_idx=-1):
+def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, Nodes_to_explore, past_rewards, exploring_idx):
   """ MCTS_recursive
   Args:
       path_to_simulate (np.array): path to take (simulated) to get to the start point
@@ -119,13 +120,13 @@ def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, perso
   QValues = []
   states_to_simulate = []
   states_to_simulate_person = []
+  path_to_simulate = trajectories[exploring_idx].copy()
 
   # offset path_to_simulate 
   for idx in range(len(path_to_simulate[0])): # TODO this is wrong 
     path_to_simulate[0][idx] += robot_pos[0]
     path_to_simulate[1][idx] += robot_pos[1]
   print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
-
 
   print(f'[MCTS_recursive] exploring idx: {exploring_idx}')
   # print(f'trajectories {list(trajectories)}')
@@ -139,7 +140,7 @@ def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, perso
     state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
     state["orientation"] = path_to_simulate[2][idx]  
     states_to_simulate.append(state)
-    print(f'state["position"] {state["position"]}')
+    # print(f'state["position"] {state["position"]}')
 
   # // person
   #  person_state_3value [xy[0], xy[1], state[2]]
@@ -173,14 +174,15 @@ def MCTS_recursive(path_to_simulate, robot_pos, person_pos,  trajectories, perso
   else:
     # Recursively search
     rewards = []
-    robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[0][-1]])
+    print(f'robot_pos was {robot_pos}')
+    robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[1][-1]])
+    print(f'robot_pos is now {robot_pos}')
     # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
     person_pos = env.person.state_["position"]
     for idx in idices:
-      path_to_simulate = trajectories[idx]
       print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
       reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards) # we need both scalers
-      reward = MCTS_recursive(path_to_simulate, robot_pos, person_pos, trajectories, person_state_3value, Nodes_to_explore-1, reward, idx)
+      reward = MCTS_recursive(robot_pos, person_pos, trajectories, person_state_3value, Nodes_to_explore-1, reward, exploring_idx=idx)
       rewards.append(reward)
     best_idx = np.argmax(rewards)
     recommended_move = idices[best_idx]
@@ -200,6 +202,7 @@ if __name__ == '__main__':
       trajectories.extend([[x[i], y[i], theta[i]]])
     # plt.show()
     trajectories = trajectories[1:]
+
     # trajectories = trajectories[:3]
 
     # vect1 = 
