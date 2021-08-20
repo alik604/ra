@@ -15,8 +15,8 @@ class DeepQNetwork(nn.Module):
             n_actions, name, chkpt_dir='./model_weights/DDQN_Discrete', file_label="null"):
         super(DeepQNetwork, self).__init__()
         self.name = name
-        self.checkpoint_dir = f'{chkpt_dir}_{file_label}'
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_DDQN')
+        self.checkpoint_dir = f'{chkpt_dir}'
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+f'_{file_label}')
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -49,7 +49,14 @@ class DeepQNetwork(nn.Module):
 
     def load_checkpoint(self):
         print('... loading checkpoint ...')
-        self.load_state_dict(T.load(self.checkpoint_file))
+        try:
+            self.load_state_dict(T.load(self.checkpoint_file))
+        except FileNotFoundError:
+            print('... loading failed. Will non destructively save random weights and reload, to prevent reoccurrence...')
+            T.save(self.state_dict(), self.checkpoint_file)
+            self.load_checkpoint()
+            raise Exception(f'\n\nIf you have weights, correct the file name... else rerun\n[debug]Checkpoint_file is {self.checkpoint_file}')
+            
 
 
 class Agent():
@@ -111,13 +118,19 @@ class Agent():
     def action_probs(self, observation, Nodes_to_explore_greedy):
         if Nodes_to_explore_greedy:# greedy in a sense; has noise 
             state = T.tensor([observation]).to(self.Q_eval.device)
-            actions = self.Q_eval.forward(state)
-            actions = np.random.choice(actions, Nodes_to_explore_greedy, p=actions, repalce=False)
+            actions = self.Q_eval.forward(state).detach().numpy()[0]
+            actions -= actions.min()
+            actions /=actions.sum()
+            # print(f'actions is {actions} | {sum(actions)}')
+            actions = np.random.choice(actions, Nodes_to_explore_greedy, p=actions, replace=False)
             return actions
 
         else: # not greedy; no noise 
             state = T.tensor([observation]).to(self.Q_eval.device)
-            actions = self.Q_eval.forward(state)
+            actions = self.Q_eval.forward(state).detach().numpy()[0]
+            actions -= actions.min()
+            actions /=actions.sum()
+            # print(f'actions is {actions}')
             return actions
 
 
@@ -244,8 +257,6 @@ if __name__ == '__main__':
             agent.store_transition(observation, action_idx, reward, observation_, done)
             agent.learn()
             observation = observation_
-
-
             # while episode
 
         # if score > best_score:

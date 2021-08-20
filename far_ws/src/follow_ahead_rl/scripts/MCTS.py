@@ -79,7 +79,6 @@ def MCTS(trajectories, Nodes_to_explore):
     # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
 
     state = env.get_observation_relative_robot()
-    # TODO get Q(state))
     QValues = agent.action_probs(state, Nodes_to_explore_greedy=Nodes_to_explore) # TODO is this right? 
     # QValues = np.random.rand(len(trajectories))
     # QValues /= np.sum(QValues)
@@ -98,7 +97,7 @@ def MCTS(trajectories, Nodes_to_explore):
         path_to_simulate = trajectories[idx]
         print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
         reward = 1.01 * (QValues[idx] + env.get_reward(simulate=False))
-        reward = MCTS_recursive(robot_pos, person_pos, trajectories,
+        reward = MCTS_recursive(robot_pos, person_pos, trajectories.copy(),
                                 person_state_3value, Nodes_to_explore-1, reward, idx)
         rewards.append(reward)
     best_idx = np.argmax(rewards)
@@ -129,12 +128,12 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
     states_to_simulate = []
     states_to_simulate_person = []
     path_to_simulate = trajectories[exploring_idx].copy()
-
+    print(f'[before] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
     # offset path_to_simulate
     for idx in range(len(path_to_simulate[0])):  # TODO this is wrong
         path_to_simulate[0][idx] += robot_pos[0]
         path_to_simulate[1][idx] += robot_pos[1]
-    print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
+    print(f'[after]  path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
 
     print(f'[MCTS_recursive] exploring idx: {exploring_idx}')
     # print(f'trajectories {list(trajectories)}')
@@ -169,7 +168,6 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
     # print(f'person_state_3value = {person_state_3value}') # [xy[0], xy[1], state[2]]
 
     state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate, states_to_simulate_person=states_to_simulate_person)  # different
-    # TODO get Q value here
     QValues = agent.action_probs(state, Nodes_to_explore_greedy=Nodes_to_explore) # TODO is this right? 
 
     # QValues = np.random.rand(len(trajectories))
@@ -188,18 +186,15 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
         # Recursively search
         rewards = []
         print(f'robot_pos was {robot_pos}')
-        robot_pos = np.array(
-            [path_to_simulate[0][-1], path_to_simulate[1][-1]])
+        robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[1][-1]])
         print(f'robot_pos is now {robot_pos}')
         # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
         person_pos = env.person.state_["position"]
         for idx in idices:
-            print(
-                f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+            print(f'\n\n\n[call MCTS_recursive from MCTS_recursive] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
             # we need both scalers
-            reward = (
-                0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
-            reward = MCTS_recursive(robot_pos, person_pos, trajectories,
+            reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
+            reward = MCTS_recursive(robot_pos, person_pos, trajectories.copy(),
                                     person_state_3value, Nodes_to_explore-1, reward, exploring_idx=idx)
             rewards.append(reward)
         best_idx = np.argmax(rewards)
@@ -241,7 +236,8 @@ if __name__ == '__main__':
     n_actions = len(trajectories)
     observation_shape = 47
     agent = Agent(gamma=0.99, epsilon=0.99, batch_size=128, n_actions=n_actions, eps_end=0.01,
-              input_dims=[observation_shape], lr=0.02, eps_dec=5e-4, ALIs_over_training=2, file_label = "DDQN_Discrete") # changed from eps_dec=5e-4
+              input_dims=[observation_shape], lr=0.02, eps_dec=5e-4, ALIs_over_training=2, file_label = "DDQN_MCTS") # changed from eps_dec=5e-4
+    # agent.save_models()
     agent.load_models()
 
     print('START Test')
@@ -260,11 +256,11 @@ if __name__ == '__main__':
         observation = env.get_observation_relative_robot()
         # env.person.pause()
         # env.person.resume()
-        EPISODE_LEN = 10
+        EPISODE_LEN = 6
         for i in range(EPISODE_LEN):  
 
             # print(f'state:\n{state}')
-            recommended_move = MCTS(trajectories, Nodes_to_explore=3)
+            recommended_move = MCTS(trajectories.copy(), Nodes_to_explore=3)
             # TODO take recommended_move
             print(f'in main loop recommended_move is {recommended_move}')
 
