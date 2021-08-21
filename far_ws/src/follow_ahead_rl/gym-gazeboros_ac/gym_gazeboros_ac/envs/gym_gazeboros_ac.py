@@ -2241,7 +2241,7 @@ class GazeborosEnv(gym.Env):
     def get_angle_person_robot(self):
         _, pos_rel = GazeborosEnv.get_relative_heading_position(
             self.robot, self.person)
-        angle_robot_person = math.atan2(pos_rel[1], pos_rel[0])
+        angle_robot_person = math.atan2(pos_rel[1], pos_rel[0]) # TODO at timed i will need to do x -x_1... and y-y_1 
         return (GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
 
     def get_reward(self, simulate=False):

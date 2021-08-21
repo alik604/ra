@@ -40,7 +40,7 @@ if __name__ == '__main__':
             state, reward, done, _ = env.step(action)
 
             human_state = list(state)
-            list_of_human_state.append(human_state)
+            list_of_human_state.append(human_state) # current x,y,theta AND WITH it's history    to next x,y, theta 
 
             sleep(0.1)
 

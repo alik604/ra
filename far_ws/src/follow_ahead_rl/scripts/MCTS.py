@@ -22,10 +22,14 @@ else:
     # print(f"[Error!] PolynomialRegressor save not found")
     raise Exception
 
+# TODO remake HIMM with current x,y,theta AND WITH it's history    to next x,y, theta 
 
 def predict_person(state):
+
+    # TODO allow predicting N seconds in the furture, by calling a loop... low prioirity 
+
     # print(f'state.shape is {state.shape}')
-    state = state.reshape(1, -1)
+    state = state.reshape(1, -1) # 47 -> 47 + 3 
     # print(f'state is {state}')
     # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
     state = PolynomialFeatures(degree=2).fit_transform(state)
@@ -96,6 +100,7 @@ def MCTS(trajectories, Nodes_to_explore):
     for idx in idices:
         path_to_simulate = trajectories[idx]
         print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+        print(f'trajectories are\n{trajectories}\n\n')
         reward = 1.01 * (QValues[idx] + env.get_reward(simulate=False))
         reward = MCTS_recursive(robot_pos, person_pos, trajectories.copy(),
                                 person_state_3value, Nodes_to_explore-1, reward, idx)
@@ -107,7 +112,7 @@ def MCTS(trajectories, Nodes_to_explore):
     return recommended_move
 
 
-def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, Nodes_to_explore, past_rewards, exploring_idx):
+def MCTS_recursive(robot_pos, person_vel,  trajectories, person_state_3value, Nodes_to_explore, past_rewards, exploring_idx):
     """ MCTS_recursive
     Args:
         path_to_simulate (np.array): path to take (simulated) to get to the start point
@@ -124,6 +129,7 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
         int: recommended_move, which of N actions to take; which of the `trajectories` to take
 
     """
+    print(f'[start MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
     QValues = []
     states_to_simulate = []
     states_to_simulate_person = []
@@ -153,11 +159,11 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
 
     # // person
     #  person_state_3value [xy[0], xy[1], state[2]]
-
+    # from x,y we can used arcTan to get the oriantation 
     print(f'person_state_3value is {person_state_3value}')
     state = {}
-    state["velocity"] = (person_state_3value[0], person_state_3value[1])
-    state["position"] = (person_pos[0], person_pos[1])
+    state["velocity"] = (person_vel[0], person_vel[1]) #TODO remane change in pos / change in # time sqrt(x^2 + y^2)/time... where time is sleep(0.1) fro mhinn data collector 
+    state["position"] = (person_state_3value[0], person_state_3value[1]) # TODO cordinate frame 
     # env.robot.state_["orientation"] # = 0
     state["orientation"] = person_state_3value[2]
     states_to_simulate_person.append(state)
@@ -189,12 +195,13 @@ def MCTS_recursive(robot_pos, person_pos,  trajectories, person_state_3value, No
         robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[1][-1]])
         print(f'robot_pos is now {robot_pos}')
         # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
-        person_pos = env.person.state_["position"]
+        person_vel = env.person.state_["position"]
         for idx in idices:
             print(f'\n\n\n[call MCTS_recursive from MCTS_recursive] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
             # we need both scalers
             reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
-            reward = MCTS_recursive(robot_pos, person_pos, trajectories.copy(),
+            print(f'[before recursivly calling MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
+            reward = MCTS_recursive(robot_pos, person_vel, trajectories.copy(),
                                     person_state_3value, Nodes_to_explore-1, reward, exploring_idx=idx)
             rewards.append(reward)
         best_idx = np.argmax(rewards)
