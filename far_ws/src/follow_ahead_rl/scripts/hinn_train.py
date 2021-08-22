@@ -17,29 +17,60 @@ import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
 import pickle, os
 
-EPOCHS = 550 # 400
-BATCH_SIZE = 64
-TRAIN_MLP = False 
-TRAIN_CATBOOST = False
-TRAIN_RFR = False
+EPOCHS = 650 # 400
+BATCH_SIZE = 32
+TRAIN_MLP = True 
+TRAIN_CATBOOST = True
+TRAIN_RFR = True
 TRAIN_POLY = True
 
 
 if __name__ == '__main__':
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f'Torch will use {device}')
-    
-    state_dim = 43
-    action_dim = 2
 
-    save_local_1 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state.csv'
-    save_local_2 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state_next.csv'
 
-    list_of_human_state = pd.read_csv(save_local_1).values.tolist()
-    list_of_human_state_next = pd.read_csv(save_local_2).values.tolist()
+    # save_local_1 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state.csv'
+    # save_local_2 = './model_weights/HumanIntentNetwork/Saves/list_of_human_state_next.csv'
+    # list_of_human_state = pd.read_csv(save_local_1).values.tolist()
+    # list_of_human_state_next = pd.read_csv(save_local_2).values.tolist()
 
+    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
+    # tmp = pd.read_csv(save_local).values#.tolist()
+    if os.path.isfile(save_local):
+        with open(save_local, 'rb') as handle:
+            tmp = pickle.load(handle)
+            tmp = np.asarray(tmp) # , dtype=np.float32
+    else:
+        raise Exception(f"Warning: Tried to load previous data but files were not found!\nLooked in location {save_local}")
+    for i in range(len(tmp)):
+        tmp[i] = np.array(tmp[i])
+
+    tmp = np.asarray(tmp)
+    print(f'tmp[1:5]\n{tmp[1:5]}')
+    print(f'tmp.shape {tmp.shape}')
+
+    print(f'tmp[1][0,:] {tmp[1][0,:]}')
+    print(f'target col.shape {tmp[:,0,:].shape}')
+    print(f'data   col.shape {tmp[:,1:,:].shape}')
+
+    list_of_human_state = tmp[:,1:,:]#.astype(np.float32)
+    list_of_human_state_next = tmp[:,0,:]#.astype(np.float32)
+
+    print(f'list_of_human_state[:5]\n{list_of_human_state[:5]}')
+    print(f'list_of_human_state_next[:5]\n{list_of_human_state_next[:5]}')
+
+    flatten_dim = list_of_human_state.shape[1] * list_of_human_state.shape[2]
+    list_of_human_state = list_of_human_state.reshape(-1, flatten_dim)
+    print(f'list_of_human_state[:5]\n{list_of_human_state[:5]}')
+
+    # exit()
     if TRAIN_MLP:
-        model = HumanIntentNetwork(inner=128, input_dim=state_dim, output_dim=3)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(f'Torch will use {device}')
+
+        state_dim = len(list_of_human_state[0])# 43
+        output_dim = len(list_of_human_state_next[0]) # 3
+        print(f'State_dim {state_dim} | output_dim {output_dim}')
+        model = HumanIntentNetwork(inner=128, input_dim=state_dim, output_dim=output_dim)
         model.load_checkpoint()
         model.to(device)
 
@@ -68,9 +99,9 @@ if __name__ == '__main__':
 
             if epoch % 100 == 0:
                 model.save_checkpoint()
-            if epoch == 400:
-                BATCH_SIZE = int(BATCH_SIZE/2)
-                optimizer.param_groups[0]['lr'] = 0.0001
+            if epoch == 300: # 400
+                BATCH_SIZE = max(int(BATCH_SIZE/2), 1)
+                optimizer.param_groups[0]['lr'] *= 0.1 # = 0.0001
                 print(f'\tBatch size is now {BATCH_SIZE} and the LR is now {0.0001}')
                 
             losses.append(_sum)
@@ -92,8 +123,10 @@ if __name__ == '__main__':
         train_dataset = catboost.Pool(X_train, y_train) 
         eval_dataset = catboost.Pool(X_test, y_test)
 
-        CBR = catboost.CatBoostRegressor(iterations = 3000, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True) # , early_stopping_rounds=500
-        CBR.load_model(PATH)
+        CBR = catboost.CatBoostRegressor(iterations = 30, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True) # , early_stopping_rounds=500
+        if os.path.isfile(PATH):
+            CBR.load_model(PATH)
+            print(f'loading Catboost model...')
 
         # #### fit hardcoded model #####
         CBR.fit(X_train, y_train, eval_set=eval_dataset)
@@ -206,5 +239,5 @@ if __name__ == '__main__':
         # print(f'y_test\n{np.array(y_test)[-100:]}')
         #### Visualization ####
         # visualization(0, 120)
-        visualization(500, 520)
+        # visualization(500, 520)
 

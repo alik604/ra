@@ -2,7 +2,7 @@ import random
 import numpy as np
 import pandas as pd
 import os
-
+import pickle
 from time import sleep
 from collections import deque
 
@@ -11,10 +11,25 @@ import gym_gazeboros_ac
 
 # Constants
 ENV_NAME = 'gazeborosAC-v0'
-N_EPISODES = 10
+N_EPISODES = 1000
 STEPS_PER_EPISODE = 35
-ADDON_PREV_DATA = True
+# ADDON_PREV_DATA = True # removed
+Human_xyTheta_ordered_triplets = []
 
+def saveData(Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDON_PREV_DATA=True):
+    # if ADDON_PREV_DATA:
+    if os.path.isfile(save_local):
+        with open(save_local, 'rb') as handle:
+            x = pickle.load(handle)
+            Human_xyTheta_ordered_triplets.extend(x) # pd.read_csv(save_local).values.tolist()
+    else:
+        print(f"Warning: Tried to load previous data but files were not found!\nLooked in location {save_local}")
+
+    # save data 
+    with open(save_local, 'wb') as handle:
+        pickle.dump(Human_xyTheta_ordered_triplets, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # _ = pd.DataFrame(Human_xyTheta_ordered_triplets).to_csv(save_local, header=False, index=False)
+      
 
 if __name__ == '__main__':
     env = gym.make(ENV_NAME).unwrapped
@@ -25,11 +40,10 @@ if __name__ == '__main__':
     # list_of_human_state = []
     # list_of_human_state_next = []
 
-    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.csv'
-    Human_xyTheta_ordered_triplets = []
+    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
 
     action = [0,0] 
-    mode = [0,1,2,4] # see def path_follower() is gym_gazebros.py
+    mode = [0,1,2] # 4 # see def path_follower() is gym_gazebros.py
     window_size = 4 # 1 is current, rest are past
     history = deque([0]*window_size, maxlen=window_size)
 
@@ -66,25 +80,23 @@ if __name__ == '__main__':
                 next_state = [xy[0], xy[1], xy[2]]
                 list_of_human_state_next.append(next_state)
             '''
-            # if env.fallen:
-            #     break
+            if env.fallen:
+                state = env.reset()
+                break
+        
+        if i % 20 == 0:
+            saveData()
+            Human_xyTheta_ordered_triplets = []
+            print("Done Saving...")
 
     env.close()
-
-    if ADDON_PREV_DATA:
-        if os.path.isfile(save_local):
-            Human_xyTheta_ordered_triplets.extend(pd.read_csv(save_local).values.tolist())
-        else:
-            print("Warning: Tried to load previous data but files were not found!")
-
-    # save data
-    _ = pd.DataFrame(Human_xyTheta_ordered_triplets).to_csv(save_local, header=False, index=False)
+    saveData()
     print("Done Saving...\nEND")
 
-    '''
-    if os.path.isfile(save_local_1) and os.path.isfile(save_local_2):
-        list_of_human_state.extend(pd.read_csv(save_local_1).values.tolist())
-        list_of_human_state_next.extend(pd.read_csv(save_local_2).values.tolist())
-        _ = pd.DataFrame(list_of_human_state).to_csv(save_local_1, header=False, index=False)
-        _ = pd.DataFrame(list_of_human_state_next).to_csv(save_local_2, header=False, index=False)
+    ''' past code
+        if os.path.isfile(save_local_1) and os.path.isfile(save_local_2):
+            list_of_human_state.extend(pd.read_csv(save_local_1).values.tolist())
+            list_of_human_state_next.extend(pd.read_csv(save_local_2).values.tolist())
+            _ = pd.DataFrame(list_of_human_state).to_csv(save_local_1, header=False, index=False)
+            _ = pd.DataFrame(list_of_human_state_next).to_csv(save_local_2, header=False, index=False)
     '''

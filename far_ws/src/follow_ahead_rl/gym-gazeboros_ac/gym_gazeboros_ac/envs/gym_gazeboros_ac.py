@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 # Environment Parameters
 class EnvConfig:
-    # Boolean to make robots spawn at constant locations
+    # Boolean to make robots spawn at constant locations. no noise. set true at early training to make task easier. 
     USE_TESTING = False
 
     # If False, Moves obstacles out of the way
@@ -1440,7 +1440,7 @@ class GazeborosEnv(gym.Env):
 
 
         self.number_of_steps = 0
-        # rospy.loginfo("init simulation called") # TODO
+        rospy.loginfo("init simulation called") # TODO
         self.is_pause = True
 
         init_pos_robot, init_pos_person = self.get_init_pos_robot_person()
@@ -1450,10 +1450,10 @@ class GazeborosEnv(gym.Env):
         self.is_max_distance = False
         self.first_call_observation = True
         
-        rospy.loginfo("Waiting for path follower to die")
+        # rospy.loginfo("Waiting for path follower to die")
         if self.position_thread:
             self.position_thread.join()
-        rospy.loginfo("Done waiting")
+        # rospy.loginfo("Done waiting")
 
         self.current_obsevation_image_ = np.zeros([2000, 2000, 3])
         self.current_obsevation_image_.fill(255)
