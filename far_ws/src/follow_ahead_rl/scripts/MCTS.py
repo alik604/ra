@@ -98,21 +98,17 @@ def MCTS(trajectories, person_history_actual, Nodes_to_explore):
     person_history_predicted.appendleft(person_next_state)
     # print(f'person_next_state = {person_next_state}') # [xy[0], xy[1], state[2]]
 
-    # predict robot's next move
+    # predict robot's next moves
     state = env.get_observation_relative_robot()
-    QValues = agent.action_probs(state) 
-    print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
-
-    # select top N moves
-    idices = np.argsort(QValues)[::-1]  # sort
+    QValues = agent.action_probs(state) # there is no noise... exploration vs exploitation
+    idices = np.argsort(QValues)[::-1]  # flip to get largest to smallest
     idices = idices[:Nodes_to_explore]  # select top N
-    print(f'idices to explore: {idices}')
+    print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
+    print(f'idices to explore {idices}')
 
-    # Recursively search
+    # Recursively search to choose which of moves to recommend
     rewards = []
     robot_pos = env.robot.state_["position"]  # np.array([1, 1])
-    
-
     for idx in idices:
         path_to_simulate = trajectories[idx]
         print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
@@ -128,7 +124,7 @@ def MCTS(trajectories, person_history_actual, Nodes_to_explore):
     return recommended_move
 
 
-def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_explore, past_rewards, exploring_idx):
+def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_explore, past_rewards, exploring_idx, dTime=0.5):
     """ MCTS_recursive
     Args:
         path_to_simulate (np.array): path to take (simulated) to get to the start point
@@ -140,6 +136,7 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
         Nodes_to_explore (int): top N actions to consider 
         past_rewards: past rewards
         exploring_idx (int): debug index of which precomputer traj are we branching from
+        dTime (float): dTime in velocity calculations. it is 0.5 because that is what is used to sleep in `hinn_data_collector.py`
 
     Returns:
         int: recommended_move, which of N actions to take; which of the `trajectories` to take
@@ -166,8 +163,7 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
     for idx in range(len(path_to_simulate[0])):
         robot_state = {}
         robot_state["velocity"] = (0.9, 0) # TODO figure this out
-        robot_state["position"] = (path_to_simulate[0][idx],
-                             path_to_simulate[1][idx])
+        robot_state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
         robot_state["orientation"] = path_to_simulate[2][idx]
         states_to_simulate_robot.append(robot_state)
         # print(f'robot_state["position"] {robot_state["position"]}')
@@ -178,18 +174,27 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
     person_next_state = predict_person(list(person_history_predicted))
     person_history_predicted.appendleft(person_next_state)
     person_state = {}
-    person_state["velocity"] = (person_vel[0], person_vel[1]) #TODO remane change in pos / change in # time sqrt(x^2 + y^2)/time... where time is sleep(0.5) from hinn data collector 
-    person_state["position"] = (person_next_state[0], person_next_state[1]) # TODO cordinate frame 
+
+    # https://courses.lumenlearning.com/boundless-physics/chapter/quantities-of-rotational-kinematics/
+    # TODO cordinate frame  see get_relative_heading_position and line `math.hypot(rel_person[0], rel_person[1])`
+    _history = person_history_predicted
+    x = person_next_state[0]
+    y = person_next_state[1]
+    angular_velocity  = (_history[0][2]-_history[1][2])/dTime  # fist elem is latest. angular_velocity is dTheta/dTime
+    # linear_velocity = np.hypot(_history[0][0]-_history[1][0], _history[0][1]-_history[1][1])/dTime   # from my notes during out meeting I have: sqrt(x^2 + y^2)/dTime. might have meant sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2)/dTime
+    linear_velocity = np.hypot(x,y)*angular_velocity # linear_velocity is r*angular_velocity
+    person_state["velocity"] = (linear_velocity, angular_velocity)
+    person_state["position"] = (x, y)
     person_state["orientation"] = person_next_state[2]
     states_to_simulate_person.append(person_state)
     # print(f'predicted next state of person = {person_next_state}') # [xy[0], xy[1], state[2]]
 
     # predict person's next move & select top N moves
-    state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate_robot, states_to_simulate_person=states_to_simulate_person)  # different
+    state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate_robot, states_to_simulate_person=states_to_simulate_person)
     QValues = agent.action_probs(state) # there is no noise... exploration vs exploitation
-    print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
     idices = np.argsort(QValues)[::-1]  # flip to get largest to smallest
     idices = idices[:Nodes_to_explore]  # select top N
+    print(f'QValues:\n{QValues} | sum {np.sum(QValues):.2f}')
     print(f'idices to explore {idices}')
 
     if Nodes_to_explore == 1:
@@ -202,13 +207,12 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
         robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[1][-1]])
         print(f'robot_pos is now {robot_pos}')
         # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
-        person_pos = env.person.state_["position"]
         for idx in idices:
             print(f'\n\n\n[call MCTS_recursive from MCTS_recursive] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
             # we need both scalers
             current_reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
             print(f'[before recursivly calling MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
-            reward = MCTS_recursive(robot_pos, person_pos, trajectories.copy(),
+            reward = MCTS_recursive(robot_pos, trajectories.copy(),
                                     person_history_predicted.copy(), Nodes_to_explore-1, current_reward, exploring_idx=idx)
             rewards.append(reward)
         best_idx = np.argmax(rewards)
