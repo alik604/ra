@@ -124,14 +124,8 @@ class Agent():
 
         actions = self.Q_eval.forward(state)
         actions = F.softmax(actions)
-
         print(f'actions is {actions} | {sum(actions)}')
-        
         return actions
-
-
-
-
 
     def learn(self):
         if self.mem_cntr < self.batch_size: #maybe self.batch_size*2... IDK about this 

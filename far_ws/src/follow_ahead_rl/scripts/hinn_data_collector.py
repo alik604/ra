@@ -56,13 +56,13 @@ if __name__ == '__main__':
         
         # fill with valid non-0 data
         xyTheta = env.get_person_pos()
-        for _ in range(window_size+1):
+        for _ in range(window_size):
             history.appendleft(xyTheta)
 
         for ii in range(STEPS_PER_EPISODE):
             action = [0,0]
             # action = [xyTheta[0], xyTheta[1]]
-            state, reward, done, _ = env.step(action) # i doubt this even matters... 
+            state, reward, done, _ = env.step(action) # unneeded?... 
 
             sleep(0.5)
             xyTheta = env.get_person_pos()
@@ -81,11 +81,11 @@ if __name__ == '__main__':
                 list_of_human_state_next.append(next_state)
             '''
             if env.fallen:
-                state = env.reset()
+                state = env.reset() # unneeded?...
                 break
         
-        # if i % 20 == 0:
-        if i % 5 == 0:
+        if i % 20 == 0:
+        # if i % 5 == 0:
             saveData()
             Human_xyTheta_ordered_triplets = []
             print("Done Saving...")
