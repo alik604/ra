@@ -11,7 +11,7 @@ import gym_gazeboros_ac
 
 # Constants
 ENV_NAME = 'gazeborosAC-v0'
-N_EPISODES = 1000
+N_EPISODES = 200
 STEPS_PER_EPISODE = 35
 # ADDON_PREV_DATA = True # removed
 Human_xyTheta_ordered_triplets = []
@@ -29,6 +29,7 @@ def saveData(Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDO
     with open(save_local, 'wb') as handle:
         pickle.dump(Human_xyTheta_ordered_triplets, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # _ = pd.DataFrame(Human_xyTheta_ordered_triplets).to_csv(save_local, header=False, index=False)
+        print(Human_xyTheta_ordered_triplets[-50:])
       
 
 if __name__ == '__main__':
@@ -43,32 +44,31 @@ if __name__ == '__main__':
     save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
 
     action = [0,0] 
-    mode = [0,1,2] # 4 # see def path_follower() is gym_gazebros.py
+    MODES = [0,1,2] # 4 # see def path_follower() is gym_gazebros.py
     window_size = 4 # 1 is current, rest are past
     history = deque([0]*window_size, maxlen=window_size)
 
     for i in range(N_EPISODES):
-        print(f"Running episode: {i} of {N_EPISODES}")
-        env.set_person_mode(random.choice(mode))   # Cycle through different person modes
-
+        mode = random.choice(MODES)
+        print(f"Running episode: {i} of {N_EPISODES} | Person Mode {mode}")
         state = env.reset()
-
+        env.set_person_mode(mode)   # Cycle through different person modes
+        
         # fill with valid non-0 data
         xyTheta = env.get_person_pos()
         for _ in range(window_size+1):
             history.appendleft(xyTheta)
 
         for ii in range(STEPS_PER_EPISODE):
+            action = [0,0]
+            # action = [xyTheta[0], xyTheta[1]]
+            state, reward, done, _ = env.step(action) # i doubt this even matters... 
 
             sleep(0.5)
             xyTheta = env.get_person_pos()
             history.appendleft(xyTheta)
 
-            action = [0,0]
-            # action = [xyTheta[0], xyTheta[1]]
-            state, reward, done, _ = env.step(action) # i doubt this even matters... 
-
-            # print(f'history as list is\n{list(history)}') # we are saving a moving window. it's not efficient, but that shouldnt matter
+            # print(f'[step {ii}] History as list is\n{list(history)}') # we are saving a moving window. it's not efficient, but that shouldnt matter
             Human_xyTheta_ordered_triplets.append(list(history))
 
             ''' past code
@@ -84,7 +84,8 @@ if __name__ == '__main__':
                 state = env.reset()
                 break
         
-        if i % 20 == 0:
+        # if i % 20 == 0:
+        if i % 5 == 0:
             saveData()
             Human_xyTheta_ordered_triplets = []
             print("Done Saving...")
