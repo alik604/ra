@@ -65,8 +65,8 @@ class HumanIntentNetwork(nn.Module):
         self.checkpoint_file = os.path.join(
             self.checkpoint_dir, 'HumanIntentNetwork')
         self.fc1 = nn.Linear(input_dim, inner) 
-        self.fc2 = nn.Linear(inner, inner*4)
-        self.fc2_5 = nn.Linear(inner*4, inner)
+        self.fc2 = nn.Linear(inner, inner*3)
+        self.fc2_5 = nn.Linear(inner*3, inner)
         self.fc3 = nn.Linear(inner, output_dim)
         self.selu = nn.SELU()  # ReLU, LeakyReLU
 

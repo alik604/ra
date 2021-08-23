@@ -115,24 +115,21 @@ class Agent():
 
         return action
 
-    def action_probs(self, observation, Nodes_to_explore_greedy):
-        if Nodes_to_explore_greedy:# greedy in a sense; has noise 
-            state = T.tensor([observation]).to(self.Q_eval.device)
-            actions = self.Q_eval.forward(state).detach().numpy()[0]
-            actions -= actions.min() # TODO recheck it should ( x - min(x) )/ (max(x) - min(x) )
-            actions /=actions.sum()
-            # smarted to just used softmax
-            # print(f'actions is {actions} | {sum(actions)}')
-            actions = np.random.choice(actions, Nodes_to_explore_greedy, p=actions, replace=False)
-            return actions
+    def action_probs(self, observation):
+        state = T.tensor([observation]).to(self.Q_eval.device)
+        # actions = self.Q_eval.forward(state).detach().numpy()[0]
+        # actions -= actions.min() # TODO recheck should be `+`. or it should be (x - min(x))/ (max(x) - min(x)). but this works. weird...
+        # actions /=actions.sum()
+        # actions = np.random.choice(actions, Nodes_to_explore_greedy, p=actions, replace=False)
 
-        else: # not greedy; no noise 
-            state = T.tensor([observation]).to(self.Q_eval.device)
-            actions = self.Q_eval.forward(state).detach().numpy()[0]
-            actions -= actions.min()
-            actions /=actions.sum()
-            # print(f'actions is {actions}')
-            return actions # smarted to just used softmax
+        actions = self.Q_eval.forward(state)
+        actions = F.softmax(actions)
+
+        print(f'actions is {actions} | {sum(actions)}')
+        
+        return actions
+
+
 
 
 
