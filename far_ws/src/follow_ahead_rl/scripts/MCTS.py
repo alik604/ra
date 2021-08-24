@@ -32,22 +32,18 @@ else:
 
 # TODO remake HIMM with current x,y,theta AND WITH it's history    to next x,y, theta 
 
-def predict_person(state):
+def predict_person(state_history):
+    # TODO allow predicting N seconds in the furture, by calling a loop... low priority 
 
-    # TODO allow predicting N seconds in the furture, by calling a loop... low prioirity 
-
-    # print(f'state.shape is {state.shape}')
-    state = state.reshape(1, -1) #
-    # print(f'state is {state}')
-    # TODO should be fine, fiting shouldn't be necessary for PolynomialFeatures
-    state = PolynomialFeatures(degree=2).fit_transform(state)
-    # print(f'state.shape is {state.shape}')
-    y_pred = REGR.predict(state)
+    state_history = np.array(state_history).reshape(1, -1) # .flatten()
+    # print(f'[predict_person] state_history {state_history}')
+    state_history = PolynomialFeatures(degree=2).fit_transform(state_history)     # should be fine, fiting shouldn't be necessary for PolynomialFeatures
+    y_pred = REGR.predict(state_history)
     # print(f'y_pred {y_pred.flatten()}')
     return y_pred.flatten().tolist()
 
 
-def MCTS(trajectories, person_history_actual, Nodes_to_explore):
+def MCTS(trajectories, person_history_actual, robot_history_actual, Nodes_to_explore):
     """ MCTS
 
     Args:
@@ -99,6 +95,10 @@ def MCTS(trajectories, person_history_actual, Nodes_to_explore):
     # print(f'person_next_state = {person_next_state}') # [xy[0], xy[1], state[2]]
 
     # predict robot's next moves
+    robot_pos = env.robot.state_["position"]
+    robot_theta = env.robot.state_["orientation"]
+    robot_history_actual.appendleft([robot_pos[0], robot_pos[1], robot_theta])
+    
     state = env.get_observation_relative_robot()
     QValues = agent.action_probs(state) # there is no noise... exploration vs exploitation
     idices = np.argsort(QValues)[::-1]  # flip to get largest to smallest
@@ -108,13 +108,12 @@ def MCTS(trajectories, person_history_actual, Nodes_to_explore):
 
     # Recursively search to choose which of moves to recommend
     rewards = []
-    robot_pos = env.robot.state_["position"]  # np.array([1, 1])
     for idx in idices:
         path_to_simulate = trajectories[idx]
         print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
         print(f'trajectories are\n{trajectories}\n\n')
         reward = 1.01 * (QValues[idx] + env.get_reward(simulate=False))
-        reward = MCTS_recursive(robot_pos, trajectories.copy(),
+        reward = MCTS_recursive(robot_history_actual.copy(), trajectories.copy(),
                                 person_history_predicted.copy(), Nodes_to_explore-1, reward, idx)
         rewards.append(reward)
     best_idx = np.argmax(rewards)
@@ -124,14 +123,15 @@ def MCTS(trajectories, person_history_actual, Nodes_to_explore):
     return recommended_move
 
 
-def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_explore, past_rewards, exploring_idx, dTime=0.5):
+def MCTS_recursive(trajectories, robot_history, person_history_predicted, Nodes_to_explore, past_rewards, exploring_idx, dTime=0.5):
     """ MCTS_recursive
     Args:
-        path_to_simulate (np.array): path to take (simulated) to get to the start point
-          path_to_simulate[0] is x 
-          path_to_simulate[0] is y
-        robot_pos: x, y
+
         trajectories (np.array): precomputeed list of moves
+            path_to_simulate (np.array): path to take (simulated) to get to the start point
+                path_to_simulate[0] is x 
+                path_to_simulate[0] is y
+        robot_history (deque): stored as [x, y, theta]
         person_history_predicted (deque): [x, y, theta]. this is from `hinn_data_collector.py` which maintians a history for [xy[0], xy[1], state[2]]
         Nodes_to_explore (int): top N actions to consider 
         past_rewards: past rewards
@@ -146,6 +146,7 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
     QValues = []
     states_to_simulate_robot = []
     states_to_simulate_person = []
+    robot_pos = robot_history[0].copy()
     path_to_simulate = trajectories[exploring_idx].copy()
     print(f'[before] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
     # offset path_to_simulate
@@ -159,13 +160,20 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
     # build robot states to simulated
     # TODO why no just the last. that is where we step to... 
     # print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
-    print(f'path_to_simulate theta: {path_to_simulate[2]}')
-    for idx in range(len(path_to_simulate[0])):
+    # print(f'path_to_simulate theta: {path_to_simulate[2]}')
+    NUMBER_SUB_STEPS = len(path_to_simulate[0])
+    for idx in range(NUMBER_SUB_STEPS):
         robot_state = {}
-        robot_state["velocity"] = (0.9, 0) # TODO figure this out
-        robot_state["position"] = (path_to_simulate[0][idx], path_to_simulate[1][idx])
-        robot_state["orientation"] = path_to_simulate[2][idx]
+        x = path_to_simulate[0][idx]
+        y = path_to_simulate[1][idx]
+        theta = path_to_simulate[2][idx]
+        angular_velocity  = (robot_history[0][2]-robot_history[1][2])/(dTime/NUMBER_SUB_STEPS)  # fist elem is latest. angular_velocity is dTheta/dTime
+        linear_velocity = np.hypot(x, y)*angular_velocity # linear_velocity is r*angular_velocity
+        robot_state["velocity"] = (linear_velocity, angular_velocity) # TODO figure this out
+        robot_state["position"] = (x, y)
+        robot_state["orientation"] = theta
         states_to_simulate_robot.append(robot_state)
+        robot_history.appendleft([x, y, theta])
         # print(f'robot_state["position"] {robot_state["position"]}')
 
     # TODO from x,y we can used arcTan to get the oriantation 
@@ -182,7 +190,7 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
     y = person_next_state[1]
     angular_velocity  = (_history[0][2]-_history[1][2])/dTime  # fist elem is latest. angular_velocity is dTheta/dTime
     # linear_velocity = np.hypot(_history[0][0]-_history[1][0], _history[0][1]-_history[1][1])/dTime   # from my notes during out meeting I have: sqrt(x^2 + y^2)/dTime. might have meant sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2)/dTime
-    linear_velocity = np.hypot(x,y)*angular_velocity # linear_velocity is r*angular_velocity
+    linear_velocity = np.hypot(x, y)*angular_velocity # linear_velocity is r*angular_velocity
     person_state["velocity"] = (linear_velocity, angular_velocity)
     person_state["position"] = (x, y)
     person_state["orientation"] = person_next_state[2]
@@ -212,7 +220,7 @@ def MCTS_recursive(robot_pos, trajectories, person_history_predicted, Nodes_to_e
             # we need both scalers
             current_reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
             print(f'[before recursivly calling MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
-            reward = MCTS_recursive(robot_pos, trajectories.copy(),
+            reward = MCTS_recursive(trajectories.copy(), robot_history.copy(),
                                     person_history_predicted.copy(), Nodes_to_explore-1, current_reward, exploring_idx=idx)
             rewards.append(reward)
         best_idx = np.argmax(rewards)
@@ -251,6 +259,9 @@ if __name__ == '__main__':
     # print(trajectories[i][ii])
     print(f'trajectories: {trajectories}')
 
+    person_history_actual = deque([0]*WINDOW_SIZE, maxlen=WINDOW_SIZE)
+    robot_history_actual = deque([0]*WINDOW_SIZE, maxlen=WINDOW_SIZE)
+
     n_actions = len(trajectories)
     observation_shape = 47
     agent = Agent(gamma=0.99, epsilon=0.99, batch_size=128, n_actions=n_actions, eps_end=0.01,
@@ -263,17 +274,24 @@ if __name__ == '__main__':
     MODES = [0,1,2]
     best_score = -100
     env = gym.make(ENV_NAME).unwrapped
-    
+    env.set_agent(0)
     # linear_velocity, angular_velocity. from 0 to 1, a % of the max_linear_vel (0.8) & max_angular_vel (1.8)
 
     action = [0.0, 0.0]
     for game in range(N_GAMES):
+        
         state_rel_person = env.reset()
-        person_history_actual = deque([0]*WINDOW_SIZE, maxlen=WINDOW_SIZE)
+
         person_pos = env.person.state_["position"]
         person_theta = env.person.state_["orientation"]
-        for _ in WINDOW_SIZE:
+        for _ in range(WINDOW_SIZE):
             person_history_actual.appendleft([person_pos[0], person_pos[1], person_theta])
+
+        robot_pos = env.robot.state_["position"]
+        robot_theta = env.robot.state_["orientation"]
+        for _ in range(WINDOW_SIZE):
+            robot_history_actual.appendleft([robot_pos[0], robot_pos[1], robot_theta])
+
         # mode = random.choice(MODES)
         # print(f"Running game: {game} of {N_GAMES} | Person Mode {mode}")
         # env.set_person_mode(mode)
@@ -286,7 +304,7 @@ if __name__ == '__main__':
         EPISODE_LEN = 6
         for i in range(EPISODE_LEN):  
             # print(f'state:\n{state}')
-            recommended_move = MCTS(trajectories.copy(), person_history_actual, Nodes_to_explore=3)
+            recommended_move = MCTS(trajectories.copy(), person_history_actual, robot_history_actual, Nodes_to_explore=3)
             # TODO take recommended_move
             print(f'in main loop recommended_move is {recommended_move}')
 
