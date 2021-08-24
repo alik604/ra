@@ -111,15 +111,14 @@ def MCTS(trajectories, person_history_actual, robot_history_actual, Nodes_to_exp
     for idx in idices:
         path_to_simulate = trajectories[idx]
         print(f'\n\n\n[call MCTS_recursive from MCTS] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
-        print(f'trajectories are\n{trajectories}\n\n')
+        # print(f'trajectories are\n{trajectories}\n\n')
         reward = 1.01 * (QValues[idx] + env.get_reward(simulate=False))
-        reward = MCTS_recursive(robot_history_actual.copy(), trajectories.copy(),
+        reward = MCTS_recursive(trajectories.copy(), robot_history_actual.copy(),
                                 person_history_predicted.copy(), Nodes_to_explore-1, reward, idx)
         rewards.append(reward)
     best_idx = np.argmax(rewards)
     recommended_move = idices[best_idx]
 
-    print(f'recommended_move is {recommended_move}')
     return recommended_move
 
 
@@ -142,19 +141,20 @@ def MCTS_recursive(trajectories, robot_history, person_history_predicted, Nodes_
         int: recommended_move, which of N actions to take; which of the `trajectories` to take
 
     """
-    print(f'[start MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
+    print(f'[start MCTS_recursive] exploring idx: {exploring_idx}\ntrajectories are\n{trajectories}\n\n')
     QValues = []
     states_to_simulate_robot = []
     states_to_simulate_person = []
     robot_pos = robot_history[0].copy()
     path_to_simulate = trajectories[exploring_idx].copy()
+    path_to_simulate = np.around(path_to_simulate, 2)
     print(f'[before] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
     # offset path_to_simulate
     for idx in range(len(path_to_simulate[0])):  # TODO this is wrong
         path_to_simulate[0][idx] += robot_pos[0]
         path_to_simulate[1][idx] += robot_pos[1]
+    path_to_simulate = np.around(path_to_simulate, 2)
     print(f'[after]  path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
-    print(f'[MCTS_recursive] exploring idx: {exploring_idx}')
     # print(f'trajectories {list(trajectories)}')
 
     # build robot states to simulated
@@ -212,14 +212,13 @@ def MCTS_recursive(trajectories, robot_history, person_history_predicted, Nodes_
         # Recursively search
         rewards = []
         print(f'robot_pos was {robot_pos}')
-        robot_pos = np.array([path_to_simulate[0][-1], path_to_simulate[1][-1]])
-        print(f'robot_pos is now {robot_pos}')
+        print(f'robot_pos is now {robot_history[0]}')
         # TODO calcualte person_pos for next timestep. this is hard :(  https://math.stackexchange.com/questions/2430809/how-to-determine-x-y-position-from-point-p-based-on-time-velocity-and-rate-of-t
         for idx in idices:
             print(f'\n\n\n[call MCTS_recursive from MCTS_recursive] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
             # we need both scalers
             current_reward = (0.98*QValues[idx]*env.get_reward(simulate=False)) + (0.99 * past_rewards)
-            print(f'[before recursivly calling MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
+            # print(f'[before recursivly calling MCTS_recursive]\ntrajectories are\n{trajectories}\n\n')
             reward = MCTS_recursive(trajectories.copy(), robot_history.copy(),
                                     person_history_predicted.copy(), Nodes_to_explore-1, current_reward, exploring_idx=idx)
             rewards.append(reward)
@@ -240,7 +239,7 @@ if __name__ == '__main__':
         # plt.plot(x[i], y[i])
         trajectories.extend([[x[i], y[i], theta[i]]])
     # plt.show()
-    trajectories = trajectories[1:]
+    trajectories = trajectories[1:5] # TODO remove 
 
     # trajectories = trajectories[:3]
 
@@ -267,7 +266,7 @@ if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=0.99, batch_size=128, n_actions=n_actions, eps_end=0.01,
               input_dims=[observation_shape], lr=0.02, eps_dec=5e-4, ALIs_over_training=2, file_label = "DDQN_MCTS") # changed from eps_dec=5e-4
     # agent.save_models()
-    agent.load_models()
+    # agent.load_models()
 
     print('START Test')
     N_GAMES = 1

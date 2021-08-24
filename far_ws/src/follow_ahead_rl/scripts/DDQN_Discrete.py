@@ -123,7 +123,7 @@ class Agent():
         # actions = np.random.choice(actions, Nodes_to_explore_greedy, p=actions, replace=False)
 
         actions = self.Q_eval.forward(state)
-        actions = F.softmax(actions.detach()).numpy()[0]
+        actions = F.softmax(actions.detach(), dim=1).numpy()[0]
         # print(f'[action_probs] actions is {actions} | {np.sum(actions)}')
         return actions
 
