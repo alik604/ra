@@ -29,7 +29,7 @@ def saveData(Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDO
     with open(save_local, 'wb') as handle:
         pickle.dump(Human_xyTheta_ordered_triplets, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # _ = pd.DataFrame(Human_xyTheta_ordered_triplets).to_csv(save_local, header=False, index=False)
-        print(Human_xyTheta_ordered_triplets[-50:])
+        # print(Human_xyTheta_ordered_triplets[-50:])
       
 
 if __name__ == '__main__':
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
 
     action = [0,0] 
-    MODES = [0,1,2] # 4 # see def path_follower() is gym_gazebros.py
+    MODES = [0,1,2,4] # see def path_follower() is gym_gazebros.py
     window_size = 4 # 1 is current, rest are past
     history = deque([0]*window_size, maxlen=window_size)
 
@@ -60,11 +60,13 @@ if __name__ == '__main__':
             history.appendleft(xyTheta)
 
         for ii in range(STEPS_PER_EPISODE):
-            action = [0,0]
+            action = [0, 0]
             # action = [xyTheta[0], xyTheta[1]]
             state, reward, done, _ = env.step(action) # unneeded?... 
 
             sleep(0.5)
+            # sleep(random.uniform(0.35, 0.60)) # random.choice([0.35, 0.4, 0.45, 0.5, 0.55, 0.6])
+
             xyTheta = env.get_person_pos()
             history.appendleft(xyTheta)
 

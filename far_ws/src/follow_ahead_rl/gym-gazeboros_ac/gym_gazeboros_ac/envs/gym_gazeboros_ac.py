@@ -60,6 +60,9 @@ class EnvConfig:
     # Boolean to make robots spawn at constant locations. no noise. set true at early training to make task easier. 
     USE_TESTING = False
 
+    # Evaluation Mode, Removes stochasticity when initializing environment
+    EVALUATION_MODE = False
+
     # If False, Moves obstacles out of the way
     USE_OBSTACLES = False
 
@@ -84,7 +87,7 @@ class EnvConfig:
     EPISODE_LEN = 15
 
     # Returns Human State only in get_observations if True
-    RETURN_HINN_STATE = False  # was True
+    RETURN_HINN_STATE = False
 
     # Size to reduce laser scan to
     SCAN_REDUCTION_SIZE = 20
@@ -98,8 +101,7 @@ class EnvConfig:
     # For NON-HINN OUTPUT ONLY: Outputs laser scan if true
     OUTPUT_OBSTACLES_IN_STATE = True
 
-    # Evaluation Mode, Removes stochasticity when initializing environment
-    EVALUATION_MODE = True
+
 
 
 class History():
@@ -252,7 +254,7 @@ class Robot():
         self.action_client_.cancel_all_goals()
         self.stop_robot()
 
-    # TODO relative to TB odo frame
+    # TODO relative to TB odom frame
     def movebase_client_goal(self, goal_pos, goal_orientation):
         # /move_base_node_0/TebLocalPlannerROS/local_plan
 
@@ -744,7 +746,7 @@ class GazeborosEnv(gym.Env):
     def set_use_obstacles(self, setting):
         self.use_obstacles = setting
 
-    def build_action_discrete_action_space(self, numb_tickers=3, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+    def build_action_discrete_action_space(self, numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
 
         # while self.queue_of_x.empty(): # wont exit
         #     sleep(5)
@@ -848,10 +850,8 @@ class GazeborosEnv(gym.Env):
             I might need to use /base_link as the frame 
         """
         # TODO is this even correct?
-        array, orientation = self.get_global_position_orientation(
-            [x, y], orientation, self.robot)
-        print(
-            f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
+        array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
+        print(f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
         x, y = array[0], array[1]
 
         # Set goal
@@ -898,20 +898,21 @@ class GazeborosEnv(gym.Env):
             self.plot_toggle = False
             for pos in msg.poses:
                 scaler = 1  # self.robot.max_rel_pos_range
-                x, y = pos.pose.position.x, pos.pose.position.y
-                z, w = pos.pose.orientation.z, pos.pose.orientation.w
+                # x, y = pos.pose.position.x, pos.pose.position.y
+                # z, w = pos.pose.orientation.z, pos.pose.orientation.w
                 # array = self.get_global_position([x*scaler, y*scaler], self.robot) # TODO add orientation
                 # array = self.get_global_position(self.denormlize([x, y]), self.robot)
                 # print(f' (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f} ')
-                # x, y = array[0], array[1]
-
-                # w, x, y, z
+                
                 euler = Quaternion(pos.pose.orientation.w, pos.pose.orientation.x,
                                    pos.pose.orientation.y, pos.pose.orientation.z).to_euler()
                 print(f'euler {euler} | {type(euler)}')
-                self.queue_of_x.put(round(x, 2))
-                self.queue_of_y.put(round(y, 2))
-                self.queue_of_theta.put(round(euler[2], 2))
+
+                array, orientation = self.get_global_position_orientation([x*scaler, y*scaler], euler[2], self.robot)
+                
+                self.queue_of_x.put(round(array[0], 2))
+                self.queue_of_y.put(round(array[1], 2))
+                self.queue_of_theta.put(round(orientation, 2))
             print(f'done loading queues')
 
             # See path to final position
@@ -1150,7 +1151,7 @@ class GazeborosEnv(gym.Env):
         relative = self.person
         self.robot = Robot('tb3_{}'.format(self.agent_num),
                            max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
-
+        # TODO is relative correct? 
         self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
                                      max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
 
@@ -1205,11 +1206,9 @@ class GazeborosEnv(gym.Env):
                     self.robot_eval_x = -1
                     self.robot_eval_y = 1
 
-                init_pos_person = {
-                    "pos": (self.eval_x, self.eval_y), "orientation": self.eval_orientation}
+                init_pos_person = {"pos": (self.eval_x, self.eval_y), "orientation": self.eval_orientation}
 
-                init_pos_robot = {"pos": (
-                    self.robot_eval_x, self.robot_eval_y), "orientation": self.eval_orientation}
+                init_pos_robot = {"pos": (self.robot_eval_x, self.robot_eval_y), "orientation": self.eval_orientation}
 
                 self.eval_x += 1
                 self.eval_y += 1
@@ -1431,8 +1430,7 @@ class GazeborosEnv(gym.Env):
         return (x, y)
 
     def set_obstacle_pos(self, init_pos_robot, init_pos_person):
-        obs_positions = self.get_obstacle_init_pos(
-            init_pos_robot, init_pos_person)
+        obs_positions = self.get_obstacle_init_pos(init_pos_robot, init_pos_person)
         for obs_idx in range(len(self.obstacle_names)):
             self.set_pos(self.obstacle_names[obs_idx], obs_positions[obs_idx])
 
@@ -1557,34 +1555,31 @@ class GazeborosEnv(gym.Env):
         relative_pos = np.asarray(pos_goal)
 
         # transform the relative to center coordinat
-        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(
-            center_orientation)], [-np.sin(center_orientation), np.cos(center_orientation)]])
+        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+                                     [-np.sin(center_orientation), np.cos(center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         global_pos = np.asarray(relative_pos + center_pos)
         return global_pos
 
+    # between pose and Robot. where pose is position and orientation, and robot is the PointOfOrigin
     @staticmethod
     def get_global_position_orientation(pos_goal, orientation_goal, center):
         while not center.is_current_state_ready():
             if center.reset:
-                rospy.logwarn("reseting so return none in rel pos rel: {} center".format(
-                    relative.is_current_state_ready(), center.is_current_state_ready()))
+                rospy.logwarn(f"reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
                 return (None, None)
             time.sleep(0.01)
             rospy.logwarn("waiting for observation to be ready")
-        #relative_orientation = relative.state_['orientation']
         center_pos = np.asarray(center.state_['position'])
         center_orientation = center.state_['orientation']
 
-        #pos = [x * 5 for x in pos_goal]
-
         relative_pos = np.asarray(pos_goal)
-        relative_pos2 = np.asarray(
-            (relative_pos[0] + math.cos(orientation_goal), relative_pos[1] + math.sin(orientation_goal)))
+        relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal)],
+                                   [relative_pos[1] + math.sin(orientation_goal)])
 
         # transform the relative to center coordinat
-        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(
-            center_orientation)], [-np.sin(center_orientation), np.cos(center_orientation)]])
+        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+                                     [-np.sin(center_orientation), np.cos(center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
         global_pos = np.asarray(relative_pos + center_pos)
@@ -1601,6 +1596,7 @@ class GazeborosEnv(gym.Env):
             angle += 2*math.pi
         return angle
 
+    # between two robot objects
     @staticmethod
     def get_relative_heading_position(relative, center):
         while not relative.is_current_state_ready() or not center.is_current_state_ready():
@@ -1618,7 +1614,7 @@ class GazeborosEnv(gym.Env):
         relative_pos = np.asarray(relative.state_['position'] - center_pos)
         relative_pos2 = np.asarray((relative_pos[0] + math.cos(
             relative_orientation), relative_pos[1] + math.sin(relative_orientation)))
-        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)],
+        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], # R(-Theta) is CW rotation 
                                      [-np.sin(-center_orientation), np.cos(-center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
@@ -1642,8 +1638,8 @@ class GazeborosEnv(gym.Env):
         relative_pos = np.asarray(pos)
         # transform the relative to center coordinat
         relative_pos = np.asarray(relative_pos - center_pos)
-        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)],
-                                      [-np.sin(-center_orientation), np.cos(-center_orientation)]])
+        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], # R(-Theta) is CW rotation 
+                                     [-np.sin(-center_orientation), np.cos(-center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         return relative_pos
 
@@ -1841,18 +1837,21 @@ class GazeborosEnv(gym.Env):
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
 
-    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None, relative_to_person=False, HINN=False):
+    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None):
+        '''
+        We have Robot simulated to making the observation. We need to ensure it is relative to the last (simulated) robot position. that logic is done in the function which calles this.
+            - this is because we DO NOT have the last (simulated) position here, only the last physcal one.
+            - not to mention the last physcal position is not relative to the robot. I ignore this is the `states_to_simulates` "should" be more than the window size (10), but it probably does not need to be. Worse case it is noise, that we can learn to ignore  
 
+        '''
         while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
             if self.is_reseting:
                 return None
             time.sleep(0.001)
 
-        if relative_to_person is True and HINN is True:
-            rospy.logwarn(
-                f'\n\n\nrelative_to_person is {relative_to_person} | HINN is {HINN}\nThis is odd')
+        # rospy.logwarn(f'')
 
-        # // Copy all data
+        # // Copy all data. TODO not be relative to robot, but this might not matter 
         self.robot_simulated.state_ = self.robot.state_
         self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
         self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
@@ -1865,21 +1864,22 @@ class GazeborosEnv(gym.Env):
         self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
         # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
 
-        # // Simulate
+        # // Simulate. 
         if states_to_simulate is not None:
             for state in states_to_simulate:
+                # position, orientation = self.get_global_position_orientation(state["position"], state["orientation"], self.robot_simulated)
+                # state["position"] = position
+                # state["orientation"] = orientation
                 self.robot_simulated.set_state(state)
 
         if states_to_simulate_person is not None:
             for state in states_to_simulate_person:
                 self.person_simulated.set_state(state)
 
-        pos_his_robot = np.asarray(
-            self.robot_simulated.pos_history.get_elemets())
+        pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
         heading_robot = self.robot_simulated.state_["orientation"]
 
-        pos_his_person = np.asarray(
-            self.person_simulated.pos_history.get_elemets())
+        pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets())
         heading_person = self.person_simulated.state_["orientation"]
 
         robot_vel = np.asarray(self.robot_simulated.get_velocity())
@@ -1893,13 +1893,10 @@ class GazeborosEnv(gym.Env):
                                           scale=0.1, size=robot_vel.shape)
             person_vel += np.random.normal(loc=0,
                                            scale=0.1, size=person_vel.shape)
-        heading_relative = GazeborosEnv.wrap_pi_to_pi(
-            heading_robot-heading_person)/(math.pi)
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
         pos_rel = []
 
         relative_to = self.robot_simulated
-        if relative_to_person:
-            relative_to = self.person_simulated
         for pos in (poses):
             # TODO_changed from self.robot.relative to self.robot_simulated
             relative = GazeborosEnv.get_relative_position(pos, relative_to)
@@ -1907,20 +1904,16 @@ class GazeborosEnv(gym.Env):
         pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
 
         # TODO: make the velocity normalization better
-        velocities = np.concatenate(
-            (person_vel, robot_vel))/self.robot_simulated.max_angular_vel
+        velocities = np.concatenate((person_vel, robot_vel))/self.robot_simulated.max_angular_vel
         if self.use_orientation_in_observation:  # True
-            # This was not changed, since it's extra information...
             velocities_heading = np.append(velocities, heading_relative)
         else:
             velocities_heading = velocities
             
-        final_ob = np.append(
-            np.append(pos_history, velocities_heading), self.prev_action)
+        final_ob = np.append(np.append(pos_history, velocities_heading), self.prev_action)
 
-        if HINN:
-            final_ob = np.append(np.append(person_vel, heading_person), pos_his_person)
-            final_ob = np.append(final_ob, self.person_scan)
+        # if HINN:
+        #     final_ob = np.append(np.append(np.append(person_vel, heading_person), pos_his_person), self.person_scan)
 
         return final_ob
 
