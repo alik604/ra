@@ -31,6 +31,24 @@ def saveData(Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDO
         # _ = pd.DataFrame(Human_xyTheta_ordered_triplets).to_csv(save_local, header=False, index=False)
         # print(Human_xyTheta_ordered_triplets[-50:])
       
+# between pose and pose. where pose is position and orientation, and the 2nd pose is the "center"
+def get_relative_pose(pos_goal, orientation_goal, pos_center, orientation_center):
+    center_pos = np.asarray(pos_center)
+    center_orientation = orientation_center
+
+    relative_pos = np.asarray(pos_goal)
+    relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal)],
+                                [relative_pos[1] + np.sin(orientation_goal)])
+
+    # transform the relative to center coordinat
+    rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+                                    [-np.sin(center_orientation), np.cos(center_orientation)]])
+    relative_pos = np.matmul(relative_pos, rotation_matrix)
+    relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
+    global_pos = np.asarray(relative_pos + center_pos)
+    global_pos2 = np.asarray(relative_pos2 + center_pos)
+    new_orientation = np.arctan2(global_pos2[1]-global_pos[1], global_pos2[0]-global_pos[0])
+    return global_pos[0], global_pos[1], new_orientation
 
 if __name__ == '__main__':
     env = gym.make(ENV_NAME).unwrapped
@@ -68,7 +86,10 @@ if __name__ == '__main__':
             # sleep(random.uniform(0.35, 0.60)) # random.choice([0.35, 0.4, 0.45, 0.5, 0.55, 0.6])
 
             xyTheta = env.get_person_pos()
-            history.appendleft(xyTheta)
+            # TODO 
+            raise RuntimeError("TODO check below code...")
+            x,y,theta = get_relative_pose([xyTheta[0], xyTheta[1]], xyTheta[2], env.robot.state_["position"], env.robot.state_["orientation"])
+            history.appendleft([x, y, theta])
 
             # print(f'[step {ii}] History as list is\n{list(history)}') # we are saving a moving window. it's not efficient, but that shouldnt matter
             Human_xyTheta_ordered_triplets.append(list(history))
