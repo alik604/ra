@@ -73,11 +73,6 @@ def MCTS(trajectories, person_history_actual, robot_history_actual, Nodes_to_exp
         int: recommended_move, which of N actions to take; which of the `trajectories` to take
     
     Notes:
-        # TODO the trajectories list is being changed somewhere and somehow.....
-        # TODO add person pos, and robot velocity
-        # save and pass the person pos like `robot_pos`?
-        # TODO deal with orientation when simulating
-
         # TODO visusal the path of the robot and the human and reward
 
         # DONE* sum_of_qvals is naive. mayne we should renormalize or discount
@@ -100,15 +95,18 @@ def MCTS(trajectories, person_history_actual, robot_history_actual, Nodes_to_exp
     print(f'trajectories: {trajectories}')
     print(f'len(trajectories): {len(trajectories)}')
 
-    # predict person's next move
+    # predict person's next move (relative to robot's current pose)
     person_pos = env.person.state_["position"]
     person_theta = env.person.state_["orientation"]
-    person_history_actual.appendleft([person_pos[0], person_pos[1], person_theta])
+    x, y, theta = get_relative_pose(person_pos, person_theta, env.robot.state_["position"], env.robot.state_["orientation"])
+    person_history_actual.appendleft([x, y, theta]) # no loop needed, this function is the "loop"
 
     person_past_state = list(person_history_actual)
     person_next_state = predict_person(person_past_state)
+    # output of predict_person should be relative to robot... 
+    # x, y, theta = get_relative_pose([person_next_state[0], person_next_state[1]], person_next_state[2], env.robot.state_["position"], env.robot.state_["orientation"])
 
-    person_history_predicted = deque(person_past_state, maxlen=WINDOW_SIZE)
+    person_history_predicted = person_history_actual.copy() # deque(person_past_state, maxlen=WINDOW_SIZE)
     person_history_predicted.appendleft(person_next_state)
     # print(f'person_next_state = {person_next_state}') # [xy[0], xy[1], state[2]]
 
@@ -178,16 +176,17 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
     path_to_simulate = np.around(path_to_simulate, 2)
     print(f'[after]  path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
     # print(f'trajectories {list(trajectories)}')
-
-    # build robot states to simulated
     # print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
+
+
+    ####  build robot states to simulated
     # // since env outputs states based on window of last 10, we need to ensure pose is relative to robot.
     robot_hist = list(robot_history_predicted).reverse()
     for idx in range(len(robot_hist)-1):
         last_x, last_y, last_theta = robot_hist[idx][0], robot_hist[idx][1], robot_hist[idx][2]
+        last_x, last_y, last_theta = get_relative_pose([last_x, last_y], last_theta, [states_to_simulate_robot[0][0], states_to_simulate_robot[0][1]], states_to_simulate_robot[0][2])
         x, y, theta = robot_hist[idx+1][0], robot_hist[idx+1][1], robot_hist[idx+1][2]
         x, y, theta = get_relative_pose([x,y], theta, [last_x, last_y], last_theta)
-
         robot_state = {}
         angular_velocity = (theta-last_theta)/dTime
         linear_velocity = np.hypot(x-last_x, y-last_y)/dTime # TODO delta time here is worng, need a elegant way to have it. it's dTime or dTime/NUMBER_SUB_STEPS, depending if MCTS or MCTS_recursive called MCTS_recursive (as `robot_history_predicted` might be "robot_history_predicted" or "robot_history_actual" ) 
@@ -195,6 +194,7 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
         robot_state["position"] = (x, y)
         robot_state["orientation"] = theta
         states_to_simulate_robot.append(robot_state)
+        robot_history_predicted.appendleft([x, y, theta])
 
     # TODO why no just the last. that is where we step to...
     # // populate states_to_simulate_robot
@@ -217,25 +217,28 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
         # print(f'robot_state["position"] {robot_state["position"]}')
 
     # // predict person's next move
+    # add newest to front. flip and build `states_to_simulate_person` 
     # https://courses.lumenlearning.com/boundless-physics/chapter/quantities-of-rotational-kinematics/
     # TODO cordinate frame see get_relative_heading_position and line `math.hypot(rel_person[0], rel_person[1])`
     person_next_state = predict_person(list(person_history_predicted))
     person_history_predicted.appendleft(person_next_state)
-    person_state = {}
 
-    last_x, last_y, last_theta = person_history_predicted[1][0], person_history_predicted[1][1], person_history_predicted[1][2]
-    x, y, theta                = person_history_predicted[0][0], person_history_predicted[0][1], person_history_predicted[0][2]
+    person_hist = list(person_history_predicted).reverse() # oldest to latest
+    for idx in range(len(person_hist)-1):
+        last_x, last_y, last_theta = person_hist[idx][0], person_hist[idx][1], person_hist[idx][2]
+        last_x, last_y, last_theta = get_relative_pose([last_x, last_y], last_theta, [states_to_simulate_robot[0][0], states_to_simulate_robot[0][1]], states_to_simulate_robot[0][2])
+        x, y, theta = person_hist[idx+1][0], person_hist[idx+1][1], person_hist[idx+1][2]
+        x, y, theta = get_relative_pose([x,y], theta, [states_to_simulate_robot[0][0], states_to_simulate_robot[0][1]], states_to_simulate_robot[0][2])
+        person_state = {}
+        angular_velocity = (theta-last_theta)/dTime
+        linear_velocity = np.hypot(x-last_x, y-last_y)/dTime
+        person_state["velocity"] = (linear_velocity, angular_velocity)
+        person_state["position"] = (x, y)
+        person_state["orientation"] = theta
+        states_to_simulate_person.append(person_state)
+        # print(f'predicted next state of person = {person_state}') # [xy[0], xy[1], state[2]]
 
-    angular_velocity = (theta-last_theta)/dTime  # fist elem is latest. angular_velocity is dTheta/dTime
-    linear_velocity = np.hypot(x-last_x, y-last_y)/dTime   # from my notes during out meeting I have: sqrt(x^2 + y^2)/dTime. might have meant sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2)/dTime.  np.hypot(x, y)*angular_velocity
-
-    person_state["velocity"] = (linear_velocity, angular_velocity)
-    person_state["position"] = (x, y)
-    person_state["orientation"] = person_next_state[2]
-    states_to_simulate_person.append(person_state)
-    # print(f'predicted next state of person = {person_next_state}') # [xy[0], xy[1], state[2]]
-
-    # predict person's next move & select top N moves
+    # predict robot's next best moves & select top N
     state = env.get_observation_relative_robot(states_to_simulate=states_to_simulate_robot, states_to_simulate_person=states_to_simulate_person)
     QValues = agent.action_probs(state) # there is no noise... exploration vs exploitation
     idices = np.argsort(QValues)[::-1]  # flip to get largest to smallest

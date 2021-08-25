@@ -1141,19 +1141,35 @@ class GazeborosEnv(gym.Env):
         self.person_obstacle_pub_.publish(person_obs_msg_array)
 
     def create_robots(self):
+        
+        self.robot = Robot('tb3_{}'.format(self.agent_num),
+                           max_angular_speed=1.8, max_linear_speed=0.8, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        
+        relative = self.robot
+        self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+                                     max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+
 
         self.person = Robot('person_{}'.format(self.agent_num),
-                            max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+                            max_angular_speed=1, max_linear_speed=.6, relative=relative, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
 
         self.person_simulated = Robot('person_simulated_{}'.format(self.agent_num),
-                                      max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+                                      max_angular_speed=1, max_linear_speed=.6, relative=relative, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
 
-        relative = self.person
-        self.robot = Robot('tb3_{}'.format(self.agent_num),
-                           max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
-        # TODO is relative correct? 
-        self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
-                                     max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+
+
+        # self.person = Robot('person_{}'.format(self.agent_num),
+        #                     max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+        # self.person_simulated = Robot('person_simulated_{}'.format(self.agent_num),
+        #                               max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+        # relative = self.robot
+        # self.robot = Robot('tb3_{}'.format(self.agent_num),
+        #                    max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        # # TODO is relative correct? 
+        # self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+        #                              max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
 
     def find_random_point_in_circle(self, radious, min_distance, around_point):
         max_r = 2
@@ -1866,6 +1882,9 @@ class GazeborosEnv(gym.Env):
 
         # // Simulate. 
         if states_to_simulate is not None:
+            pad = states_to_simulate[0]
+            while len(states_to_simulate) < 10:
+                states_to_simulate.insert(0, pad)                    
             for state in states_to_simulate:
                 # position, orientation = self.get_global_position_orientation(state["position"], state["orientation"], self.robot_simulated)
                 # state["position"] = position
@@ -1873,6 +1892,9 @@ class GazeborosEnv(gym.Env):
                 self.robot_simulated.set_state(state)
 
         if states_to_simulate_person is not None:
+            pad = states_to_simulate_person[0]
+            while len(states_to_simulate_person) < 10:
+                states_to_simulate_person.insert(0, pad)
             for state in states_to_simulate_person:
                 self.person_simulated.set_state(state)
 
