@@ -74,8 +74,9 @@ if __name__ == '__main__':
         
         # fill with valid non-0 data
         xyTheta = env.get_person_pos()
+        x,y,theta = get_relative_pose([xyTheta[0], xyTheta[1]], xyTheta[2], env.robot.state_["position"], env.robot.state_["orientation"])
         for _ in range(window_size):
-            history.appendleft(xyTheta)
+            history.appendleft([x, y, theta])
 
         for ii in range(STEPS_PER_EPISODE):
             action = [0, 0]
@@ -86,8 +87,6 @@ if __name__ == '__main__':
             # sleep(random.uniform(0.35, 0.60)) # random.choice([0.35, 0.4, 0.45, 0.5, 0.55, 0.6])
 
             xyTheta = env.get_person_pos()
-            # TODO 
-            raise RuntimeError("TODO check below code...")
             x,y,theta = get_relative_pose([xyTheta[0], xyTheta[1]], xyTheta[2], env.robot.state_["position"], env.robot.state_["orientation"])
             history.appendleft([x, y, theta])
 

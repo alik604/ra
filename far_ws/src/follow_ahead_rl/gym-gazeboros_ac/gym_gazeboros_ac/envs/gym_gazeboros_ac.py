@@ -898,7 +898,7 @@ class GazeborosEnv(gym.Env):
             self.plot_toggle = False
             for pos in msg.poses:
                 scaler = 1  # self.robot.max_rel_pos_range
-                # x, y = pos.pose.position.x, pos.pose.position.y
+                x, y = pos.pose.position.x, pos.pose.position.y
                 # z, w = pos.pose.orientation.z, pos.pose.orientation.w
                 # array = self.get_global_position([x*scaler, y*scaler], self.robot) # TODO add orientation
                 # array = self.get_global_position(self.denormlize([x, y]), self.robot)
@@ -1557,12 +1557,10 @@ class GazeborosEnv(gym.Env):
     def get_global_position(pos_goal, center):
         while not center.is_current_state_ready():
             if center.reset:
-                rospy.logwarn("reseting so return none in rel pos rel: {} center".format(
-                    relative.is_current_state_ready(), center.is_current_state_ready()))
+                rospy.logwarn("reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
                 return (None, None)
             time.sleep(0.01)
             rospy.logwarn("waiting for observation to be ready")
-        #relative_orientation = relative.state_['orientation']
         center_pos = np.asarray(center.state_['position'])
         center_orientation = center.state_['orientation']
 
@@ -1642,8 +1640,7 @@ class GazeborosEnv(gym.Env):
     def get_relative_position(pos, center):
         while not center.is_current_state_ready():
             if center.reset:
-                rospy.loginfo("reseting so return none in rel pos rel: {} center".format(
-                    relative.is_current_state_ready(), center.is_current_state_ready()))
+                rospy.loginfo("reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
                 return (None, None)
             time.sleep(0.01)
             rospy.loginfo("waiting for observation to be ready relative pos")
@@ -1853,7 +1850,7 @@ class GazeborosEnv(gym.Env):
 
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
 
-    def get_observation_relative_robot(self, states_to_simulate=None, states_to_simulate_person=None):
+    def get_observation_relative_robot(self, states_to_simulate_robot=None, states_to_simulate_person=None):
         '''
         We have Robot simulated to making the observation. We need to ensure it is relative to the last (simulated) robot position. that logic is done in the function which calles this.
             - this is because we DO NOT have the last (simulated) position here, only the last physcal one.
