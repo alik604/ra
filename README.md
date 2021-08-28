@@ -6,9 +6,9 @@ By Emma Hughson, Kai Ho Anthony Cheung, and Khizr Ali Pardhan. An expansion upon
 
 ## Meta
 
-This branch is for World Models. 
+This branch is for MCTS and is a fork of the World Models brach. 
 
-File is `rnn_single_threaded_ros.py`, based on `rnn.py`, which uses multiprocessing. [Folder link](far_ws/src/follow_ahead_rl/scripts)
+The file `rnn_single_threaded_ros.py`, is based on `rnn.py` which uses multiprocessing. [Folder link](far_ws/src/follow_ahead_rl/scripts)
 
 To run, you will need to, in sourced terminals & in-order, run [tf_node.py](far_ws/src/follow_ahead_rl/old_script) and the following [launch files](far_ws/src/follow_ahead_rl/launch), `turtlebot.launch`, `navigation.launch`, and finally, code like [move_test.py](far_ws/src/follow_ahead_rl/scripts/move_test.py)
 
