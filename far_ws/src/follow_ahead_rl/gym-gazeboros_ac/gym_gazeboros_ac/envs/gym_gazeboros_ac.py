@@ -752,7 +752,7 @@ class GazeborosEnv(gym.Env):
         #     sleep(5)
         #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
 
-        sleepy_time = 1
+        sleepy_time = 0.5
         # state = {} # does not work...
         # state["velocity"] = (0.5, 0) # linear_vel, angular_vel
         # state["position"] = (5, 5)
@@ -850,6 +850,7 @@ class GazeborosEnv(gym.Env):
             I might need to use /base_link as the frame 
         """
         # TODO is this even correct?
+        # array = [x, y]
         array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
         print(f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
         x, y = array[0], array[1]
@@ -879,8 +880,8 @@ class GazeborosEnv(gym.Env):
         self.path_sub = rospy.Subscriber(
             "/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
 
-        # not sure if this is pointless, but it's not too inefficient for concerned.
-        sleep(0.5)
+        # not sure if this is pointless, but it's not too inefficient for concerne.
+        # sleep(0.5)
         # if not self.queue_of_x.empty():
         #     init_pos = self.robot.state_['position']
         #     print(f"init robot position {init_pos[0]},{init_pos[1]}")
@@ -981,8 +982,8 @@ class GazeborosEnv(gym.Env):
         self.state_cb_prev_time = None
         self.model_states_sub = rospy.Subscriber(
             "/gazebo/model_states", ModelStates, self.model_states_cb)
-        self.scan_sub = rospy.Subscriber(
-            "/person_{}/scan".format(self.agent_num), LaserScan, self.scan_cb)
+        # self.scan_sub = rospy.Subscriber(
+        #     "/person_{}/scan".format(self.agent_num), LaserScan, self.scan_cb)
 
         if EnvConfig.INIT_SIM_ON_AGENT:
             with self.lock:
@@ -1588,9 +1589,10 @@ class GazeborosEnv(gym.Env):
         center_orientation = center.state_['orientation']
 
         relative_pos = np.asarray(pos_goal)
-        relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal)],
-                                   [relative_pos[1] + math.sin(orientation_goal)])
-
+        # relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal)], # TODO: This is repalced due to a odd bug `TypeError: Field elements must be 2- or 3-tuples, got '0.123'`. I think this was caused by a dependency update
+        #                            [relative_pos[1] + math.sin(orientation_goal)])
+        relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal),
+                                    relative_pos[1] + math.sin(orientation_goal)]).T
         # transform the relative to center coordinat
         rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
                                      [-np.sin(center_orientation), np.cos(center_orientation)]])
@@ -1829,26 +1831,25 @@ class GazeborosEnv(gym.Env):
                 rospy.loginfo("problem in getting the log in path follower")
             # robot.stop_robot()
 
-    def get_laser_scan(self):
-        return self.robot.get_laser_image()
+    # def get_laser_scan(self):
+    #     return self.robot.get_laser_image()
 
-    def get_laser_scan_all(self):
-        images = self.robot.scan_image_history.get_elemets()
-        counter = 0
-        while len(images) != self.robot.scan_image_history.window_size and counter < 250:
-            images = self.robot.scan_image_history.get_elemets()
-            time.sleep(0.005)
-            counter += 1
-            if counter > 100:
-                rospy.loginfo(
-                    "wait for laser scan to get filled sec: {}/25".format(counter / 10))
-        if counter >= 250:
-            raise RuntimeError(
-                'exception while calling get_laser_scan:')
+    # def get_laser_scan_all(self):
+        # images = self.robot.scan_image_history.get_elemets()
+        # counter = 0
+        # while len(images) != self.robot.scan_image_history.window_size and counter < 250:
+        #     images = self.robot.scan_image_history.get_elemets()
+        #     time.sleep(0.005)
+        #     counter += 1
+        #     if counter > 100:
+        #         rospy.loginfo(
+        #             "wait for laser scan to get filled sec: {}/25".format(counter / 10))
+        # if counter >= 250:
+        #     raise RuntimeError(
+        #         'exception while calling get_laser_scan:')
+        # images = np.asarray(images)
 
-        images = np.asarray(images)
-
-        return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
+        # return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
 
     def get_observation_relative_robot(self, states_to_simulate_robot=None, states_to_simulate_person=None):
         '''
