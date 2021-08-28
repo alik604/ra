@@ -20,7 +20,8 @@ np.set_printoptions(linewidth=np.inf)
 ENV_NAME = 'gazeborosAC-v0'
 PATH_POLY = './model_weights/HumanIntentNetwork/PolynomialRegressor'
 
-WINDOW_SIZE = 4-1 # subject to what PolynomialRegressor is trained on than -1 
+WINDOW_SIZE = 10 # perhaps this should be large as possiable. 
+WINDOW_SIZE_predict_person = 4-1 # subject to what PolynomialRegressor is trained on than -1
 # person_history = deque([0]*window_size, maxlen=window_size)
 # person_history.appendleft([xyTheta])
 # list(person_history)
@@ -34,9 +35,8 @@ else:
 # TODO remake HIMM with current x,y,theta AND WITH it's history    to next x,y, theta 
 
 def predict_person(state_history):
-    # TODO allow predicting N seconds in the furture, by calling a loop... low priority 
 
-    state_history = np.array(state_history).reshape(1, -1) # .flatten()
+    state_history = np.array(state_history[:WINDOW_SIZE_predict_person]).reshape(1, -1) # .flatten()
     # print(f'[predict_person] state_history {state_history}')
     state_history = PolynomialFeatures(degree=2).fit_transform(state_history)     # should be fine, fiting shouldn't be necessary for PolynomialFeatures
     y_pred = REGR.predict(state_history)

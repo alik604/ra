@@ -1,5 +1,5 @@
 """
-see the function `build_action_discrete_action_space()` in gym_gazeboros_ac.py
+see the function `build_discrete_action_space()` in gym_gazeboros_ac.py
 
 rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
   seq: 0
@@ -34,10 +34,9 @@ import random, pickle
 ENV_NAME = 'gazeborosAC-v0'
 
 
-
 if __name__ == '__main__':
 
-
+    # ######### Minimal code example for the core logic
     # l1 = [[1,2,3], [1,2,3], [1,2,3]]
     # l2 = [[9,8,7], [9,8,7], [9,8,7]]
 
@@ -48,9 +47,9 @@ if __name__ == '__main__':
     # x, y = list(zip(*x))
     # print(x)
     # print(y)
-    # #########
 
-    # with open('action_discrete_action_space.pickle', 'rb') as handle:
+    # ######### Load a save, then Print and Plot 
+    # with open('discrete_action_space.pickle', 'rb') as handle:
     #     x = pickle.load(handle)
     # x, y, theta = list(zip(*x))
 
@@ -72,31 +71,27 @@ if __name__ == '__main__':
     action = [0.0, 0.0] # linear_velocity, angular_velocity. from 0 to 1, a % of the max_linear_vel (0.8) & max_angular_vel (1.8)
     # while False:
     while True:
-        # env.set_person_mode(mode % 5)
-        mode += 1
-        state = env.reset()
-        # env.person.pause() # weird side effect for ending episode (path finished)
-        # env.person.resume()
+      # env.set_person_mode(mode % 5)
+      mode += 1
+      state = env.reset()
+      # env.person.pause() # weird side effect for ending episode (path finished)
+      # env.person.resume()
 
-        for i in range(1000000):# EPISODE_LEN
-            state, reward, done, _ = env.step(action)
+      state, reward, done, _ = env.step(action)
 
-            x = env.build_action_discrete_action_space()
-            x, y, theta = list(zip(*x))
+      x = env.build_action_discrete_action_space()
+      x, y, theta = list(zip(*x))
 
-            print(f'[in action_test.py]')
-            # for i in range(len(x)):
-            #   print(f'{x[i]}, {y[i]}')
-            #   print(f'\t{tuple(zip(x[i], y[i]))}')
-            state, reward, done, _ = env.step(action)
+      print(f'[in action_test.py]')
+      # for i in range(len(x)):
+      #   print(f'{x[i]}, {y[i]}')
+      #   print(f'\t{tuple(zip(x[i], y[i]))}')
+      state, reward, done, _ = env.step(action)
 
 
-            sleep(3.00)
-            print("END")
-            env.close()
-            exit(1)
-            if done:
-                break    
-            print("END")
+      sleep(3.00)
+      print("END")
+      env.close()
+      exit(1)
 
 
