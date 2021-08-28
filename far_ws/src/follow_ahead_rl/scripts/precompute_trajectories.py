@@ -55,11 +55,11 @@ if __name__ == '__main__':
 
     # print(f'[in action_test.py]')
     # for i in range(len(x)):
-    #   print(f'[{i}/{len(x)-1}]')
-    #   # print(f'\t{x[i]}, {y[i]}')
-    #   print(f'\t{tuple(zip(x[i], y[i]))}')
-    #   print(f'\t theta: {theta[i]}')
-    #   plt.plot(x[i], y[i])
+    #     print(f'[{i}/{len(x)-1}]')
+    #     # print(f'\t{x[i]}, {y[i]}')
+    #     print(f'\t{tuple(zip(x[i], y[i]))}')
+    #     print(f'\t theta: {theta[i]}')
+    #     plt.plot(x[i], y[i])
     # plt.show()
     # exit()
     
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
       state, reward, done, _ = env.step(action)
 
-      x = env.build_action_discrete_action_space()
+      x = env.build_discrete_action_space() # , numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
       x, y, theta = list(zip(*x))
 
       print(f'[in action_test.py]')

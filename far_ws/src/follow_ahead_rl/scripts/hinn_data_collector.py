@@ -16,8 +16,9 @@ STEPS_PER_EPISODE = 35
 # ADDON_PREV_DATA = True # removed
 Human_xyTheta_ordered_triplets = []
 
-def saveData(Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDON_PREV_DATA=True):
+def saveData(save_local, Human_xyTheta_ordered_triplets=Human_xyTheta_ordered_triplets, ADDON_PREV_DATA=True):
     # if ADDON_PREV_DATA:
+
     if os.path.isfile(save_local):
         with open(save_local, 'rb') as handle:
             x = pickle.load(handle)
@@ -37,8 +38,10 @@ def get_relative_pose(pos_goal, orientation_goal, pos_center, orientation_center
     center_orientation = orientation_center
 
     relative_pos = np.asarray(pos_goal)
-    relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal)],
-                                [relative_pos[1] + np.sin(orientation_goal)])
+    # relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal)],
+    #                             [relative_pos[1] + np.sin(orientation_goal)])
+    relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal),
+                                relative_pos[1] + np.sin(orientation_goal)]).T
 
     # transform the relative to center coordinat
     rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     # list_of_human_state = []
     # list_of_human_state_next = []
 
-    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
+    
 
     action = [0,0] 
     MODES = [0,1,2,4] # see def path_follower() is gym_gazebros.py
@@ -106,16 +109,17 @@ if __name__ == '__main__':
                 state = env.reset() # unneeded?...
                 break
         
-        if i % 20 == 0:
-        # if i % 5 == 0:
-            saveData()
-            Human_xyTheta_ordered_triplets = []
+        # if i % 20 == 0:
+        if i % 20 == 0 or i >= N_EPISODES-2:
+            save_local= f'./model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_{i}.pickle'
+            saveData(save_local)
+            # Human_xyTheta_ordered_triplets = [] # needed to prevent a massive about of resaving, however it causes a bug in which the pickle is only a single item.
             print("Done Saving...")
 
-    env.close()
-    saveData()
+    save_local= f'./model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_0.pickle'
+    saveData(save_local)
     print("Done Saving...\nEND")
-
+    env.close() # this must be last. sometimes the pickle won't save, which wasted hours 
     ''' past code
         if os.path.isfile(save_local_1) and os.path.isfile(save_local_2):
             list_of_human_state.extend(pd.read_csv(save_local_1).values.tolist())

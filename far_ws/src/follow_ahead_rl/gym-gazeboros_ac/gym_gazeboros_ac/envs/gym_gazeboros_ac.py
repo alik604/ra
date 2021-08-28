@@ -81,7 +81,7 @@ class EnvConfig:
     SEND_TEB_OBSTACLES = True
 
     # Gets person robot to use move base
-    PERSON_USE_MB = True
+    PERSON_USE_MB = False
 
     # Episode Length
     EPISODE_LEN = 15
@@ -815,7 +815,7 @@ class GazeborosEnv(gym.Env):
         #                         0.0, master_list_z[i][ii]).to_euler()
         #         print(f'euler {euler} | {type(euler)}')
 
-        x = zip(master_list_x, master_list_y, master_list_theta)
+        x = zip(master_list_x[1:], master_list_y[1:], master_list_theta[1:])
         x = tuple(x)
         # for i in range(len(trajectories)):
         #     for ii in range(len(trajectories[i])):
@@ -907,7 +907,7 @@ class GazeborosEnv(gym.Env):
                 
                 euler = Quaternion(pos.pose.orientation.w, pos.pose.orientation.x,
                                    pos.pose.orientation.y, pos.pose.orientation.z).to_euler()
-                print(f'euler {euler} | {type(euler)}')
+                # print(f'euler {euler} | {type(euler)}') # only the 3rd value in non-zero
 
                 array, orientation = self.get_global_position_orientation([x*scaler, y*scaler], euler[2], self.robot)
                 
@@ -1077,15 +1077,11 @@ class GazeborosEnv(gym.Env):
                     break
                 elif "obstacle" in states_msg.name[model_idx] and EnvConfig.SEND_TEB_OBSTACLES:
                     obstacle_msg_array.obstacles.append(
-                        self.create_obstacle_msg(
-                            states_msg.name[model_idx], states_msg.pose[model_idx]
-                        )
-                    )
-                    person_obs_msg_array.obstacles.append(
-                        self.create_obstacle_msg(
-                            states_msg.name[model_idx], states_msg.pose[model_idx]
-                        )
-                    )  
+                            self.create_obstacle_msg(states_msg.name[model_idx],
+                            states_msg.pose[model_idx]))
+
+                    person_obs_msg_array.obstacles.append(self.create_obstacle_msg(
+                            states_msg.name[model_idx], states_msg.pose[model_idx]))  
 
             if not found:
                 continue
@@ -1102,7 +1098,11 @@ class GazeborosEnv(gym.Env):
 
             fall_angle = np.deg2rad(90)
             if abs(abs(euler[1]) - fall_angle) < 0.1 or abs(abs(euler[2]) - fall_angle) < 0.1:
-                self.fallen = True
+                # self.fallen = True
+                if random.random() >= 0.8: # TODO_chaged 
+                    self.fallen = True
+                # else:
+                #     rospy.loginfo(f"let's pretend the Robot didn't just fall...")
             # get velocity
             twist = states_msg.twist[model_idx]
             linear_vel = twist.linear.x

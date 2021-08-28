@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # list_of_human_state = pd.read_csv(save_local_1).values.tolist()
     # list_of_human_state_next = pd.read_csv(save_local_2).values.tolist()
 
-    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets.pickle'
+    save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_0.pickle'
     save_local_no_dup= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_no_duplicates.pickle'
     DROP_DUPLICATES=True
     # tmp = pd.read_csv(save_local).values#.tolist()
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     list_of_human_state = list_of_human_state.reshape(-1, flatten_dim)
     print(f'[after flatten] list_of_human_state[:5]\n{list_of_human_state[:5]}')
 
-    exit()
+    # exit()
     if TRAIN_MLP:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         device = "cpu"
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         train_dataset = catboost.Pool(X_train, y_train) 
         eval_dataset = catboost.Pool(X_test, y_test)
 
-        CBR = catboost.CatBoostRegressor(iterations = 90, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True) # , early_stopping_rounds=500
+        CBR = catboost.CatBoostRegressor(iterations = 1500, depth = 8, learning_rate = 0.03, l2_leaf_reg = 0.2, loss_function = "MultiRMSE", thread_count = 6, use_best_model=True) # , early_stopping_rounds=500
         if os.path.isfile(PATH):
             CBR.load_model(PATH)
             print(f'loading Catboost model...')
