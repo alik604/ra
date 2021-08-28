@@ -273,7 +273,7 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
 
 if __name__ == '__main__':
     trajectories = []
-    with open('action_discrete_action_space.pickle', 'rb') as handle:
+    with open('discrete_action_space.pickle', 'rb') as handle:
         x = pickle.load(handle)
         x, y, theta = list(zip(*x))
     for i in range(len(x)):

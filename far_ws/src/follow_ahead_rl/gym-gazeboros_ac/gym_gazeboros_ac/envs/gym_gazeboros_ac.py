@@ -746,7 +746,7 @@ class GazeborosEnv(gym.Env):
     def set_use_obstacles(self, setting):
         self.use_obstacles = setting
 
-    def build_action_discrete_action_space(self, numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+    def build_discrete_action_space(self, numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
 
         # while self.queue_of_x.empty(): # wont exit
         #     sleep(5)
@@ -821,13 +821,13 @@ class GazeborosEnv(gym.Env):
         #     for ii in range(len(trajectories[i])):
         #         trajectories[i][ii] = np.array(trajectories[i][ii])
 
-        with open('action_discrete_action_space.pickle', 'wb') as handle:
+        with open('discrete_action_space.pickle', 'wb') as handle:
             pickle.dump(x, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        # with open('action_discrete_action_space.pickle', 'rb') as handle:
+        # with open('discrete_action_space.pickle', 'rb') as handle:
         #     x = pickle.load(handle)
         return x
 
-    # A utility function for build_action_discrete_action_space()
+    # A utility function for build_discrete_action_space()
 
     def set_goal(self, orientation=1, x=10, y=10, z=0):  # TODO_added
         """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
@@ -1878,11 +1878,11 @@ class GazeborosEnv(gym.Env):
         # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
 
         # // Simulate. 
-        if states_to_simulate is not None:
-            pad = states_to_simulate[0]
-            while len(states_to_simulate) < 10:
-                states_to_simulate.insert(0, pad)                    
-            for state in states_to_simulate:
+        if states_to_simulate_robot is not None:
+            pad = states_to_simulate_robot[0]
+            while len(states_to_simulate_robot) < 10:
+                states_to_simulate_robot.insert(0, pad)                    
+            for state in states_to_simulate_robot:
                 # position, orientation = self.get_global_position_orientation(state["position"], state["orientation"], self.robot_simulated)
                 # state["position"] = position
                 # state["orientation"] = orientation
