@@ -171,15 +171,9 @@ def train_rnn(rnn, optimizer, pop, random_policy=False, num_rollouts=1000, filen
   batch_pbar = tqdm(range(num_batch))
   for i in batch_pbar:
     # sample rollout data
-<<<<<<< HEAD
-    print("here about to rollout")
-    (obs_batch, act_batch)= pop.rollout(random_policy)
-    print("we did the rollout")
-=======
     print("Starting rollout")
     (obs_batch, act_batch) = pop.rollout(random_policy) # , success 
     print("completed rollout")
->>>>>>> a30784ef22455cb14e660665bc57f067be9c2af6
 
     obs_batch = obs_batch.to(device)
     act_batch = act_batch.to(device)
@@ -572,10 +566,6 @@ if __name__ == '__main__':
   print('############ We are training now ################')
   train_rnn(rnn, optimizer, pop, random_policy=True,  num_rollouts=num_rollouts, logger=loss_logger)
   loss_logger.plot('M model training loss', 'step', 'loss')
-<<<<<<< HEAD
-
-=======
->>>>>>> a30784ef22455cb14e660665bc57f067be9c2af6
   
   # Upload the trained RNN.
   success = pop.upload_rnn(rnn.cpu())

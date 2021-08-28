@@ -344,7 +344,7 @@ class PolicyNetwork(nn.Module):
         action = torch.clamp(action, -self.action_range, self.action_range)
         return action.squeeze(0)
 
-    def sample_action(self,):
+    def sample_action(self,): # TODO perhaps this is wrong? 
         a=torch.FloatTensor(self.num_actions).uniform_(-1, 1)
         return a.numpy()
 
