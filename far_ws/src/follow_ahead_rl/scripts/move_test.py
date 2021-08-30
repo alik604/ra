@@ -21,9 +21,6 @@ EPISODE_LEN = 15
 if __name__ == '__main__':
     print('START Move Test')
 
-
-
-
     # def compute_action_set(orientation_rad):
     #     pi = np.pi
     #     numb_tickers = 16

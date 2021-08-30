@@ -1887,41 +1887,54 @@ class GazeborosEnv(gym.Env):
         if states_to_simulate_robot is not None: # Made relative in MCTS
             pad = states_to_simulate_robot[0]
             while len(states_to_simulate_robot) < 10:
-                states_to_simulate_robot.insert(0, pad)                    
-            for state in states_to_simulate_robot:
-                # self.robot.robot_simulated.set_state(state) # def set_state() calls history, that is an issue
-                self.robot_simulated.state_["position"] = state["position"]
-                self.robot_simulated.state_["orientation"] = state["orientation"]
-                self.robot_simulated.state_["velocity"] = state["velocity"]
-                robot_pos_history.append(state["position"])
+                states_to_simulate_robot.insert(0, pad)  
+        else:
+            pad = self.robot.state_
+            states_to_simulate_robot = [dict(self.robot.state_) for _ in range(10)]
+
+        for state in states_to_simulate_robot[-10:]:
+            # self.robot.robot_simulated.set_state(state) # def set_state() calls history, that is an issue
+            self.robot_simulated.state_["position"] = state["position"]
+            self.robot_simulated.state_["orientation"] = state["orientation"]
+            self.robot_simulated.state_["velocity"] = state["velocity"]
+            robot_pos_history.append(state["position"])
+        robot_vel_latest = states_to_simulate_robot[-1]["velocity"]
+
 
         if states_to_simulate_person is not None:
             pad = states_to_simulate_person[0]
             while len(states_to_simulate_person) < 10:
                 states_to_simulate_person.insert(0, pad)
-            for state in states_to_simulate_person:
-                self.person_simulated.state_["position"] = state["position"]
-                self.person_simulated.state_["orientation"] = state["orientation"]
-                self.person_simulated.state_["velocity"] = state["velocity"]
-                person_pos_history.append(state["position"])
+        else:
+            states_to_simulate_person = [dict(self.person.state_) for _ in range(10)]
 
-        pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets()) # TODO replace 
+        for state in states_to_simulate_person[-10:]:
+            self.person_simulated.state_["position"] = state["position"]
+            self.person_simulated.state_["orientation"] = state["orientation"]
+            self.person_simulated.state_["velocity"] = state["velocity"]
+            person_pos_history.append(state["position"])
+        person_vel_latest = states_to_simulate_person[-1]["velocity"]
+
+        
+        
+        # pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets()) 
+        pos_his_robot = np.asarray(person_pos_history) 
         heading_robot = self.robot_simulated.state_["orientation"]
 
-        pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets()) # TODO replace 
+        # pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets())
+        pos_his_person = np.asarray(robot_pos_history) 
         heading_person = self.person_simulated.state_["orientation"]
 
-        robot_vel = np.asarray(self.robot_simulated.get_velocity())
-        person_vel = np.asarray(self.person_simulated.get_velocity())
+        robot_vel = np.asarray(robot_vel_latest)
+        person_vel = np.asarray(person_vel_latest) # was self.person_simulated.get_velocity() which is the most recent in its history
+
         poses = np.concatenate((pos_his_robot, pos_his_person))
         if self.use_noise:
             poses += np.random.normal(loc=0, scale=0.1, size=poses.shape)
             heading_robot += np.random.normal(loc=0, scale=0.2)
             heading_person += np.random.normal(loc=0, scale=0.2)
-            robot_vel += np.random.normal(loc=0,
-                                          scale=0.1, size=robot_vel.shape)
-            person_vel += np.random.normal(loc=0,
-                                           scale=0.1, size=person_vel.shape)
+            robot_vel += np.random.normal(loc=0, scale=0.1, size=robot_vel.shape)
+            person_vel += np.random.normal(loc=0, scale=0.1, size=person_vel.shape)
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
         pos_rel = []
 
