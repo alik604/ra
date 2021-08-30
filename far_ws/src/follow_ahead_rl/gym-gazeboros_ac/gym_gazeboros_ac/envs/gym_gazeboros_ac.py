@@ -739,7 +739,7 @@ class GazeborosEnv(gym.Env):
         return (dx_dt, dy_dt, da_dt)
 
     def get_test_path_number(self):
-        # rospy.loginfo("current path idx: {}".format(self.path_follower_current_setting_idx)) #TODO
+        # rospy.loginfo("current path idx: {}".format(self.path_follower_current_setting_idx)) # TODO_changed
         return self.path_follower_test_settings[self.path_follower_current_setting_idx][2]
 
     def use_test_setting(self):
@@ -1115,7 +1115,7 @@ class GazeborosEnv(gym.Env):
             fall_angle = np.deg2rad(90)
             if abs(abs(euler[1]) - fall_angle) < 0.1 or abs(abs(euler[2]) - fall_angle) < 0.1:
                 # self.fallen = True
-                if random.random() >= 0.8: # TODO_chaged 
+                if random.random() >= 0.8: # TODO_changed
                     self.fallen = True
                 # else:
                 #     rospy.loginfo(f"let's pretend the Robot didn't just fall...")
@@ -2264,7 +2264,7 @@ class GazeborosEnv(gym.Env):
 
         reward = min(max(reward, -1), 1)
         if self.agent_num == 0:
-            # rospy.loginfo("action {} reward {}".format(action, reward)) # TODO
+            # rospy.loginfo("action {} reward {}".format(action, reward)) # TODO_changed
             pass
         if episode_over:
             self.person.reset = True
@@ -2287,7 +2287,7 @@ class GazeborosEnv(gym.Env):
     def get_angle_person_robot(self):
         _, pos_rel = GazeborosEnv.get_relative_heading_position(
             self.robot, self.person)
-        angle_robot_person = math.atan2(pos_rel[1], pos_rel[0]) # TODO at timed i will need to do x -x_1... and y-y_1 
+        angle_robot_person = math.atan2(pos_rel[1], pos_rel[0]) 
         return (GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
 
     def get_reward(self, simulate=False):
@@ -2341,12 +2341,12 @@ class GazeborosEnv(gym.Env):
         self.is_reseting = True
         self.robot.reset = True
         self.person.reset = True
-        # rospy.loginfo("trying to get the lock for reset") # TODO
+        # rospy.loginfo("trying to get the lock for reset") # TODO_changed
         # if reset_gazebo:
         #     self.reset_gazebo()
         with self.lock:
 
-            # rospy.loginfo("got the lock") #TODO
+            # rospy.loginfo("got the lock") # TODO_changed
             not_init = True
             try:
                 if self.is_evaluation_:
@@ -2369,7 +2369,7 @@ class GazeborosEnv(gym.Env):
             except RuntimeError as e:
                 rospy.logerr("error happend reseting: {}".format(e))
         if not_init:
-            # rospy.loginfo("not init so run reset again") #TODO
+            # rospy.loginfo("not init so run reset again") # TODO_changed
             return (self.reset())
         else:
             rospy.sleep(2)

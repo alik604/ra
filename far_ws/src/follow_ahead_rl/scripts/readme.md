@@ -50,7 +50,8 @@ So you have generated some new trajectories using `precompute_trajectories.py`, 
   * convert [x, y, orientation] to relative to robot.
     * By use of 3 queue ojects, the pose is propagated to `build_discrete_action_space`.
 * `History()`: I had implemented a deep copy, but found out that the History class was not a mere Queue object, but rather selective/discriminative as it considered frame rate and timing (`save_rate`). In a sense this is downsampling data. add_element is the problum.
-  * I ended up using a deque with `maxlen` (_windows size_) instead.  
+  * I ended up using a deque with `maxlen` (_windows size_) instead.
+* Do a `ctrl+f` and search `TODO`, I noted many of the tempory chages, such as logging, reward related
 
 ### Miscellaneous
 
