@@ -777,15 +777,20 @@ class GazeborosEnv(gym.Env):
 
         plt.scatter(0, 0, color='black')
         self.set_goal(orientation=orientation, x=0, y=0)
-        self.set_goal(orientation=orientation, x=0, y=0)
-
-        init_pos = self.robot.state_['position']
-        print(f"robot's x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n")
-        # x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
         sleep(sleepy_time)
         master_list_x.append(list(self.queue_of_x.queue))
         master_list_y.append(list(self.queue_of_y.queue))
         master_list_theta.append(list(self.queue_of_theta.queue))
+        
+        self.set_goal(orientation=orientation, x=0, y=0)
+        sleep(sleepy_time)
+        master_list_x.append(list(self.queue_of_x.queue))
+        master_list_y.append(list(self.queue_of_y.queue))
+        master_list_theta.append(list(self.queue_of_theta.queue))
+
+        # init_pos = self.robot.state_['position']
+        # rospy.loginfo(f"robot's x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n")
+        # x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
         # print(f'x and y are:\n\t{x}\n\t{y}\n')
 
         counter = 0
@@ -819,8 +824,14 @@ class GazeborosEnv(gym.Env):
         #         euler = Quaternion(master_list_w[i][ii], 0.0,
         #                         0.0, master_list_z[i][ii]).to_euler()
         #         print(f'euler {euler} | {type(euler)}')
+        master_list_x, master_list_y, master_list_theta = master_list_x[1:], master_list_y[1:], master_list_theta[1:]
+        offset = [master_list_x[0][0], master_list_y[0][0]]
+        for i in range(len(master_list_x)):
+            for ii in range(len(master_list_x[i])):
+                master_list_x[i][ii] -=offset[0]
+                master_list_y[i][ii] -=offset[1]
 
-        x = zip(master_list_x[1:], master_list_y[1:], master_list_theta[1:])
+        x = zip(master_list_x, master_list_y, master_list_theta)
         x = tuple(x)
         # for i in range(len(trajectories)):
         #     for ii in range(len(trajectories[i])):
@@ -916,9 +927,9 @@ class GazeborosEnv(gym.Env):
 
                 array, orientation = self.get_global_position_orientation([x*scaler, y*scaler], euler[2], self.robot)
                 
-                self.queue_of_x.put(round(array[0], 2))
-                self.queue_of_y.put(round(array[1], 2))
-                self.queue_of_theta.put(round(orientation, 2))
+                self.queue_of_x.put(array[0])
+                self.queue_of_y.put(array[1])
+                self.queue_of_theta.put(orientation)
             print(f'done loading queues')
 
             # See path to final position
@@ -947,7 +958,7 @@ class GazeborosEnv(gym.Env):
             '/gazebo/set_model_state', SetModelState)
         date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
         self.agent_num = agent_num
-        # TODO this is the pose for human 
+        # note: this is the pose for human 
         self.obstacle_pub_ = rospy.Publisher(
             '/move_base_node_tb3_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
         self.person_obstacle_pub_ = rospy.Publisher(

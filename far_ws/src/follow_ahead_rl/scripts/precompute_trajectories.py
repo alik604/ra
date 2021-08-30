@@ -49,19 +49,19 @@ if __name__ == '__main__':
     # print(y)
 
     # ######### Load a save, then Print and Plot 
-    # with open('discrete_action_space.pickle', 'rb') as handle:
-    #     x = pickle.load(handle)
-    # x, y, theta = list(zip(*x))
+    with open('discrete_action_space.pickle', 'rb') as handle:
+        x = pickle.load(handle)
+    x, y, theta = list(zip(*x))
 
-    # print(f'[in action_test.py]')
-    # for i in range(len(x)):
-    #     print(f'[{i}/{len(x)-1}]')
-    #     # print(f'\t{x[i]}, {y[i]}')
-    #     print(f'\t{tuple(zip(x[i], y[i]))}')
-    #     print(f'\t theta: {theta[i]}')
-    #     plt.plot(x[i], y[i])
-    # plt.show()
-    # exit()
+    print(f'[in action_test.py]')
+    for i in range(len(x)):
+        print(f'[{i+1}/{len(x)}]')
+        # print(f'\t{x[i]}, {y[i]}')
+        print(f'\t{tuple(zip(x[i], y[i]))}')
+        print(f'\t theta: {theta[i]}')
+        plt.plot(x[i], y[i])
+    plt.show()
+    exit()
     
     print('START Move Test')
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
       state, reward, done, _ = env.step(action)
 
-      x = env.build_discrete_action_space() # , numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+      x = env.build_discrete_action_space(8) # , numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
       x, y, theta = list(zip(*x))
 
       print(f'[in action_test.py]')

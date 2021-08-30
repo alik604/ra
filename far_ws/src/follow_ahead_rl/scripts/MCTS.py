@@ -170,7 +170,7 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
     states_to_simulate_person = []
     robot_pos = robot_history_predicted[0].copy()
     path_to_simulate = trajectories[exploring_idx].copy()
-    path_to_simulate = np.around(path_to_simulate, 2)
+    # path_to_simulate = np.around(path_to_simulate, 2)
     # print(f'[before] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
 
     # // offset path_to_simulate with current robot pos
@@ -304,14 +304,14 @@ if __name__ == '__main__':
     # Default/from author. Note that epsilon-greedy is used in `choose_action` but not in `action_probs`, so the prams don't matter
     # agent = Agent(gamma=0.99, epsilon=0.35, batch_size=64, n_actions=n_actions, eps_end=0.01,
     #           input_dims=[observation_shape], lr=0.001, eps_dec=5e-4, ALIs_over_training=1, file_label = "DDQN_MCTS")
-    agent = Agent(gamma=0.99, epsilon=0.99, batch_size=128, n_actions=n_actions, eps_end=0.01,
-              input_dims=[observation_shape], lr=0.01, eps_dec=5e-4, ALIs_over_training=2, file_label = "DDQN_MCTS") # changed from eps_dec=5e-4
+    agent = Agent(gamma=0.99, batch_size=512, n_actions=n_actions, input_dims=[observation_shape],
+                    lr=0.01,  ALIs_over_training=2, file_label = "DDQN_MCTS") # changed from eps_dec=5e-4
 
-    # agent.save_models() # for after pram change
+    # agent.save_models() # for after I/O pram change
     agent.load_models()
 
     print('START Test')
-    N_GAMES = 10000
+    N_GAMES = 100000
     MODES = [0,1,2]
     rewards = []
     best_score = -100
@@ -354,7 +354,7 @@ if __name__ == '__main__':
             # for cords in trajectories[recommended_move]: # TODO confirm this is right
             cords = trajectories[recommended_move][-1]
             action = [cords[0], cords[1]]
-            state_rel_person, reward, done, _ = env.step(action)
+            state_rel_person, reward, done, _ = env.step(action) # TODO I think this need to be relative
             observation_ = env.get_observation_relative_robot()
 
             agent.store_transition(observation, recommended_move, reward, observation_, done)
