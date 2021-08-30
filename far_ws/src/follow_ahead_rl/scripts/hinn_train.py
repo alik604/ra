@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # list_of_human_state_next = pd.read_csv(save_local_2).values.tolist()
 
     save_local= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_0.pickle'
-    save_local_no_dup= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_no_duplicates.pickle'
+    # save_local_no_dup= './model_weights/HumanIntentNetwork/Saves/Human_xyTheta_ordered_triplets_no_duplicates.pickle'
     DROP_DUPLICATES=True
     # tmp = pd.read_csv(save_local).values#.tolist()
     if os.path.isfile(save_local):
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 print(f'before drop duplicates shape  {tmp.shape}')
                 tmp = np.unique(tmp, axis=0)
                 print(f'after drop duplicates shape {tmp.shape}')
-                with open(save_local_no_dup, 'wb') as handle:
+                with open(save_local, 'wb') as handle: # save_local_no_dup
                     pickle.dump(tmp, handle, protocol=pickle.HIGHEST_PROTOCOL)
     else:
         raise Exception(f"Warning: Tried to load previous data but files were not found!\nLooked in location {save_local}")
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
 
 
-    tmp = tmp[:20000000] # 20000000 runs, not testing on MLP
+    tmp = tmp[:20000000] # 20000000 runs, not tested on MLP
 
     print(f'tmp[0:5]\n{tmp[0:5]}')
     print(f'tmp.shape {tmp.shape}')

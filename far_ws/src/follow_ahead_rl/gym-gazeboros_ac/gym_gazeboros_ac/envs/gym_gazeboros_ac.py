@@ -101,7 +101,12 @@ class EnvConfig:
     # For NON-HINN OUTPUT ONLY: Outputs laser scan if true
     OUTPUT_OBSTACLES_IN_STATE = True
 
-
+'''
+TODO; Notes
+Create my own history system. Mine would not have a notion of save rate. In a sense this is downsampling data. add_element is the problum
+I needed a rolling window 
+call history of object, get elements. we have al lthe lements N (maybe 10). This is a rolling windows class  
+'''
 
 
 class History():
@@ -1867,39 +1872,43 @@ class GazeborosEnv(gym.Env):
 
         # // Copy all data. TODO not be relative to robot, but this might not matter 
         self.robot_simulated.state_ = self.robot.state_
-        self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
-        self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
-        self.robot_simulated.velocity_history = self.robot.velocity_history.deepcopy()
+        # self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
+        # self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
+        # self.robot_simulated.velocity_history = self.robot.velocity_history.deepcopy()
         # self.robot_simulated.all_pose_ = deepcopy(self.robot.all_pose_)
 
         self.person_simulated.state_ = self.person.state_
-        self.person_simulated.orientation_history = self.person.orientation_history.deepcopy()
-        self.person_simulated.pos_history = self.person.pos_history.deepcopy()
-        self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
+        # self.person_simulated.orientation_history = self.person.orientation_history.deepcopy()
+        # self.person_simulated.pos_history = self.person.pos_history.deepcopy()
+        # self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
         # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
-
+        robot_pos_history, person_pos_history = [], []
         # // Simulate. 
-        if states_to_simulate_robot is not None:
+        if states_to_simulate_robot is not None: # Made relative in MCTS
             pad = states_to_simulate_robot[0]
             while len(states_to_simulate_robot) < 10:
                 states_to_simulate_robot.insert(0, pad)                    
             for state in states_to_simulate_robot:
-                # position, orientation = self.get_global_position_orientation(state["position"], state["orientation"], self.robot_simulated)
-                # state["position"] = position
-                # state["orientation"] = orientation
-                self.robot_simulated.set_state(state)
+                # self.robot.robot_simulated.set_state(state) # def set_state() calls history, that is an issue
+                self.robot_simulated.state_["position"] = state["position"]
+                self.robot_simulated.state_["orientation"] = state["orientation"]
+                self.robot_simulated.state_["velocity"] = state["velocity"]
+                robot_pos_history.append(state["position"])
 
         if states_to_simulate_person is not None:
             pad = states_to_simulate_person[0]
             while len(states_to_simulate_person) < 10:
                 states_to_simulate_person.insert(0, pad)
             for state in states_to_simulate_person:
-                self.person_simulated.set_state(state)
+                self.person_simulated.state_["position"] = state["position"]
+                self.person_simulated.state_["orientation"] = state["orientation"]
+                self.person_simulated.state_["velocity"] = state["velocity"]
+                person_pos_history.append(state["position"])
 
-        pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets())
+        pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets()) # TODO replace 
         heading_robot = self.robot_simulated.state_["orientation"]
 
-        pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets())
+        pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets()) # TODO replace 
         heading_person = self.person_simulated.state_["orientation"]
 
         robot_vel = np.asarray(self.robot_simulated.get_velocity())

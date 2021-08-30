@@ -38,13 +38,12 @@ def get_relative_pose(pos_goal, orientation_goal, pos_center, orientation_center
     center_orientation = orientation_center
 
     relative_pos = np.asarray(pos_goal)
-    # relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal)],
-    #                             [relative_pos[1] + np.sin(orientation_goal)])
-    relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal),
-                                relative_pos[1] + np.sin(orientation_goal)]).T
+    # relative_pos2 = np.asarray([[relative_pos[0] + np.cos(orientation_goal)],
+    #                             [relative_pos[1] + np.sin(orientation_goal)]])
+    relative_pos2 = np.asarray([relative_pos[0] + np.cos(orientation_goal), relative_pos[1] + np.sin(orientation_goal)]).T
 
     # transform the relative to center coordinat
-    rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+    rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], #s
                                     [-np.sin(center_orientation), np.cos(center_orientation)]])
     relative_pos = np.matmul(relative_pos, rotation_matrix)
     relative_pos2 = np.matmul(relative_pos2, rotation_matrix)

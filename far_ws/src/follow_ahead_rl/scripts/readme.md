@@ -6,6 +6,17 @@
 
 > see in-line documentation and docstrings
 
+#### Nuances & Misc
+
+##### Ephemeral state
+
+`env.robot_simulated` and `env.person_simulated` have been added. Their state should be treated as ephemeral. in every simulation, the state is inherited from the real state, and is hence incorrect. This _state_ is then over written completely whenever `env.get_observation_relative_robot(states_to_simulate_robot, states_to_simulate_person)` is called, even if it is without pramaters.
+    * velocity_history and orientation_history are not actually used.
+
+##### Ordering
+
+* There are two `deque` objects to have a rolling window. You append to the left, and the right-most element is ejected if the list is too long.  
+
 ### `precompute_trajectories.py`
 
 * simple code to call `env.build_action_discrete_action_space()`, which saves a pickle file to disk with the name `discrete_action_space.pickle`.
@@ -18,7 +29,9 @@
 * Then we will train a regression model on the above data.
   * Implemntated models are: MLP, Catboost, Random Forest Regressor, and the classic Polynomial regression
 
-### `/far_ws/src/follow_ahead_rl/gym-gazeboros_ac/gym_gazeboros_ac/envs/gym_gazeboros_ac.py`
+> the data is saved in a pickle file. There are two small code issues, to avoid failed saving, or double saving (one checkpoint, one rolling latest), the file must be manualy renamed
+
+### `... /gym_gazeboros_ac.py`
 
 > Some of the major changes are:
 
@@ -28,14 +41,11 @@
   * Convert Quaternion to Euler (orientation)
   * convert [x, y, orientation] to relative to robot.
     * By use of 3 queue ojects, the pose is propagated to `build_discrete_action_space`.
+* `History()`: I had implemented a deep copy, but found out that the History class was not a mere Queue object, but rather selective/discriminative as it considered frame rate and timing (`save_rate`). In a sense this is downsampling data. add_element is the problum.
+  * I ended up using a deque with `maxlen` (_windows size_) instead.  
 
 ### Miscellaneous
 
-The file `rnn_single_threaded_ros.py`, is based on `rnn.py` which uses multiprocessing
+The file `rnn_single_threaded_ros.py`, is based on `rnn.py` which uses multiprocessing. This is world models (without the CNN-autoencoder), which was My and Emma's contribution to our CMPT 419 group project.
 
-## Nuances
-
-### Ephemeral state
-
-`env.robot_simulated` and `env.person_simulated` have been added. Their state should be treated as ephemeral. in every simulation, the state is inherited from the real state, and is hence incorrect. This _state_ is then over written completely whenever `env.get_observation_relative_robot(states_to_simulate_robot, states_to_simulate_person)` is called, even if it is without pramaters.
-    * velocity_history and orientation_history are not actually used.
+Anthony's work was on ROS and taking my HINN (Human's next `x, y, theta` prediction given state, with is based on a laser scan) and using it to follow from ahead.
