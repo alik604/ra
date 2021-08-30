@@ -164,7 +164,7 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
     # TODO add....  array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
 
 
-    # print(f'[start MCTS_recursive] exploring idx: {exploring_idx}\ntrajectories are\n{trajectories}\n\n')
+    # print(f'[start MCTS_recursive] exploring idx: {exploring_idx}') # \ntrajectories are\n{trajectories}\n\n')
     QValues = []
     states_to_simulate_robot = []
     states_to_simulate_person = []

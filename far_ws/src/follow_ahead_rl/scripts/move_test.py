@@ -1,3 +1,4 @@
+import pickle
 import gym
 import gym_gazeboros_ac
 import numpy as np
@@ -23,30 +24,41 @@ if __name__ == '__main__':
 
 
 
-    def compute_action_set(orientation_rad):
-        pi = np.pi
-        numb_tickers = 16
-        phase_shift = 2*pi/numb_tickers
+    # def compute_action_set(orientation_rad):
+    #     pi = np.pi
+    #     numb_tickers = 16
+    #     phase_shift = 2*pi/numb_tickers
 
-        velocity_ratios = [1/(1.6*1.6), 1/1.6, 1] # 1.66 or 1.625 or 1.6
+    #     velocity_ratios = [1/(1.6*1.6), 1/1.6, 1] # 1.66 or 1.625 or 1.6
 
-        action_set = []
-        action_set.append([0, 0]) # do nothing
+    #     action_set = []
+    #     action_set.append([0, 0]) # do nothing
 
-        for velocity_ratio in velocity_ratios:
+    #     for velocity_ratio in velocity_ratios:
 
-            angle = orientation_rad - phase_shift
-            for i in range(3): # 3 is hardcoded, if changed, reorientation & plot will be needed 
+    #         angle = orientation_rad - phase_shift
+    #         for i in range(3): # 3 is hardcoded, if changed, reorientation & plot will be needed 
                
-                # (velocity_ratio*np.cos(angle), velocity_ratio*np.sin(angle))
-                action_set.append([velocity_ratio, angle]) # [linear_velocity, angular_velocity]
-                angle += phase_shift # TODO was angle += phase_shift
+    #             # (velocity_ratio*np.cos(angle), velocity_ratio*np.sin(angle))
+    #             action_set.append([velocity_ratio, angle]) # [linear_velocity, angular_velocity]
+    #             angle += phase_shift # TODO was angle += phase_shift
  
-        return action_set # 10 actions
+    #     return action_set # 10 actions
 
+    def compute_action_set_from_TEB():
+        trajectories = []
+        with open('discrete_action_space.pickle', 'rb') as handle:
+            x = pickle.load(handle)
+            x, y, theta = list(zip(*x))
+            for i in range(len(x)):
+                # print(f'\t{x[i]}, {y[i]}')
+                # plt.plot(x[i], y[i])
+                trajectories.extend([[x[i], y[i], theta[i]]])
+        return trajectories
 
-    action_set = compute_action_set(0)
-    print(action_set)
+    # action_set = compute_action_set(0)
+    trajectories = compute_action_set_from_TEB()
+    # print(action_set)
     mode = 4
     env = gym.make(ENV_NAME).unwrapped
     env.set_agent(0)
@@ -64,7 +76,7 @@ if __name__ == '__main__':
             c = c+1
             c = c % 10 
             print(f'c is {c}')
-            state, reward, done, _ = env.step(action)
+            
             # dx_dt, dy_dt, da_dt = env.get_system_velocities() # best to see code. (dx_dt, dy_dt, da_dt)
             # print(f'X: {dx_dt} | Y: {dy_dt} | Angular V: {da_dt}')
 
@@ -87,12 +99,17 @@ if __name__ == '__main__':
             orientation_rad = np.arctan2(rel_heading[1], rel_heading[0])
             orientation = np.rad2deg(orientation_rad)
             print(f'get relative heading: {rel_heading} | orientation_rad {orientation_rad} | orientation {orientation}')
+            
+            recommended_move = np.random.choice(len(trajectories))
+            cords = trajectories[recommended_move][-1]
+            action = [cords[0], cords[1]]
+            state_rel_person, reward, done, _ = env.step(action)
 
-
-            action_set = compute_action_set(orientation_rad)
+            # state, reward, done, _ = env.step(action)
+            # action_set = compute_action_set(orientation_rad)
             # print(f'action_set {action_set}')
-            action = action_set[c]
-            sleep(0.25)
+            # action = action_set[c]
+            sleep(0.50)
             # sleep(2.00)
             # if done:
             #     break
