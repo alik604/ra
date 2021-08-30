@@ -134,26 +134,27 @@ if __name__ == '__main__':
             print(f'current_robot_pos is {current_robot_pos}\npath_to_simulate is {path_to_simulate[:2]}')
             # exit()
 
-            #### option a #####         
-            # cords = path_to_simulate[-1]
-            # action = [cords[0], cords[1]]
-            # state_rel_person, reward, done, _ = env.step(action)
+            #### option a Direct #####         
+            cords = path_to_simulate[-1]
+            x, y = cords[0], cords[1]
+            x, y, theta = get_relative_pose([x, y], cords[2], [current_robot_pos[0], current_robot_pos[1]], env.robot.state_['orientation'])
+            state_rel_person, reward, done, _ = env.step([x, y])
 
-            #### option b #####   
-            NUMBER_SUB_STEPS = len(path_to_simulate)
-            for idx in range(NUMBER_SUB_STEPS):
-                robot_state = {}
-                x, y, theta = path_to_simulate[0][idx], path_to_simulate[1][idx], path_to_simulate[2][idx]
-                last_x, last_y, last_theta = current_robot_pos[0], current_robot_pos[1], env.robot.state_['orientation']
+            #### option b Micto steps #####   
+            # NUMBER_SUB_STEPS = len(path_to_simulate)
+            # for idx in range(NUMBER_SUB_STEPS):
+            #     robot_state = {}
+            #     x, y, theta = path_to_simulate[0][idx], path_to_simulate[1][idx], path_to_simulate[2][idx]
+            #     last_x, last_y, last_theta = current_robot_pos[0], current_robot_pos[1], env.robot.state_['orientation']
                 
-                # x, y, theta = get_relative_pose([x, y], theta, [last_x, last_y], last_theta)
-                state_rel_person, reward, done, _ = env.step([x, y])
+            #     x, y, theta = get_relative_pose([x, y], theta, [last_x, last_y], last_theta)
+            #     state_rel_person, reward, done, _ = env.step([x, y])
 
             # state, reward, done, _ = env.step(action)
             # action_set = compute_action_set(orientation_rad)
             # print(f'action_set {action_set}')
             # action = action_set[c]
-            sleep(0.50)
+            sleep(1.50)
             # sleep(2.00)
             # if done:
             #     break

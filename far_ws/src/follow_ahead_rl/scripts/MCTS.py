@@ -352,9 +352,16 @@ if __name__ == '__main__':
 
             # take action
             # for cords in trajectories[recommended_move]: # TODO confirm this is right
-            cords = trajectories[recommended_move][-1]
-            action = [cords[0], cords[1]]
-            state_rel_person, reward, done, _ = env.step(action) # TODO I think this need to be relative
+            # cords = trajectories[recommended_move][-1]
+            # action = [cords[0], cords[1]]
+            # state_rel_person, reward, done, _ = env.step(action) # TODO I think this need to be relative
+
+            path_to_simulate = trajectories[recommended_move].copy()
+            current_robot_pos = env.robot.state_['position'] 
+            x, y = path_to_simulate[-1][0] + current_robot_pos[0], path_to_simulate[-1][1] + current_robot_pos[1] # off set with current_robot_pos 
+            x, y, theta = get_relative_pose([x, y], env.robot.state_['orientation'], [current_robot_pos[0], current_robot_pos[1]], env.robot.state_['orientation'])
+            state_rel_person, reward, done, _ = env.step([x, y])
+
             observation_ = env.get_observation_relative_robot()
 
             agent.store_transition(observation, recommended_move, reward, observation_, done)

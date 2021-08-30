@@ -8,6 +8,14 @@
 
 #### Nuances & Misc
 
+##### Bugs I think I have
+
+I think I am using the generated trajectories worng. see `move_test.py`. I think `discrete_action_space.pickle` should be centered about (0,0), I think Payamn said otherwise, but I'm switching to me resoning in a last ditch hope.
+
+##### Test the damn trajectories
+
+So you have generated some new trajectories using `precompute_trajectories.py`, dont forgot to test them in `move_test.py` to see if they can be done without falling. I disabled falling and trained overnight :(  
+
 ##### Ephemeral state
 
 `env.robot_simulated` and `env.person_simulated` have been added. Their state should be treated as ephemeral. in every simulation, the state is inherited from the real state, and is hence incorrect. This _state_ is then over written completely whenever `env.get_observation_relative_robot(states_to_simulate_robot, states_to_simulate_person)` is called, even if it is without pramaters.
