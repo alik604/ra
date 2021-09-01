@@ -1114,9 +1114,9 @@ class GazeborosEnv(gym.Env):
 
             fall_angle = np.deg2rad(90)
             if abs(abs(euler[1]) - fall_angle) < 0.1 or abs(abs(euler[2]) - fall_angle) < 0.1:
-                # self.fallen = True
-                if random.random() >= 0.8: # TODO_changed
-                    self.fallen = True
+                self.fallen = True
+                # if random.random() >= 0.8: # TODO_changed
+                #     self.fallen = True
                 # else:
                 #     rospy.loginfo(f"let's pretend the Robot didn't just fall...")
             # get velocity
