@@ -17,7 +17,7 @@ To run, you will need to, in sourced terminals & in-order, run [tf_node.py](far_
 
 **What is Follow-Ahead?** Following-ahead algorithms use machine learning to predict human trajectory to stay ahead of humans. Follow-behind algorithms have had more recognition. For example, one application is a follow-behind shopping cart. **But,** there is a lack of security. 
 
-**Why Model-Based Methods: **The field of reinforcement learning is **primarily focused** on model-free methods. Model-based methods have been shown to be more efficient than model-free.
+**Why Model-Based Methods:** The field of reinforcement learning is **primarily focused** on model-free methods. Model-based methods have been shown to be more efficient than model-free.
 
 **What our solution is: Extending the work** of Nikdel et al., we will be using model-based algorithms with the addition of obstacle avoidance.
 
