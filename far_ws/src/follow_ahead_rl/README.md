@@ -16,3 +16,8 @@
 - Build project: `catkin_make`
 - Source workspace: `source devel/setup.bash`
 - Launch project: `roslaunch src/follow_ahead_rl/launch/turtlebot.launch`
+
+## Development
+
+### Please see /scripts for details.
+The documentation is seprate, and has a link to a google doc for the methodological details
