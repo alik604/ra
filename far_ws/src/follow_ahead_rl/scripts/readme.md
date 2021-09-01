@@ -14,11 +14,11 @@ This is in [Google doc](https://docs.google.com/document/d/11x_Wpk4UQDjVFefjjUey
 
 ##### Bugs I think I have
 
-I think I am using the generated trajectories worng. see `move_test.py`. I think `discrete_action_space.pickle` should be centered about (0,0), I think Payamn said otherwise, but I'm switching to me resoning in a last ditch hope.
+I think I am using the generated trajectories worng. see `move_test.py`. I think `discrete_action_space.pickle` should be centered about (0,0), I think Payamn said otherwise, but I'm switching to my resoning in a last ditch hope.
 
-##### Test the damn trajectories
+It is going to be very important to test/visualize the trajectories, this is being done in `move_test.py` to see if they can be done without falling. **There is a bug here**, I have played around with when to and to-not make pose relative to the robot. The falling might be due to rounding, do ing the trajecty generations (pre-computing) phase. 
 
-So you have generated some new trajectories using `precompute_trajectories.py`, dont forgot to test them in `move_test.py` to see if they can be done without falling. I disabled falling and trained overnight :(  
+I disabled falling and trained overnight, which was a mistake .
 
 ##### Generating the trajectories
 
