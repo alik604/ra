@@ -1469,7 +1469,6 @@ class GazeborosEnv(gym.Env):
 
     def init_simulator(self):
 
-
         self.number_of_steps = 0
         rospy.loginfo("init simulation called") # TODO
         self.is_pause = True

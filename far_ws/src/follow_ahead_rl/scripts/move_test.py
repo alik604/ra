@@ -5,6 +5,7 @@ import gym_gazeboros_ac
 import numpy as np
 import matplotlib.pyplot as plt
 from time import sleep
+import cv2 as cv
 
 ENV_NAME = 'gazeborosAC-v0'
 EPISODE_LEN = 15
@@ -77,6 +78,7 @@ if __name__ == '__main__':
 
     # action_set = compute_action_set(0)
     trajectories = compute_action_set_from_TEB()
+    trajectories = trajectories[:10]
     # for i in range(len(trajectories)): # look like the first elem is indeed the first (meaning its not flipped)
         # for ii in range(len(trajectories[i])):
         # print(f'trajectories[i][0] {trajectories[i][0]}\n')
@@ -96,8 +98,9 @@ if __name__ == '__main__':
         # env.person.resume()
         counter += 1
         # counter = counter % 10 
-        print(f'counter is {counter}')       
-        for i in range(1):# EPISODE_LEN
+        print(f'counter is {counter}')
+        images = []       
+        for i in range(len(trajectories)):# EPISODE_LEN
                        
             # dx_dt, dy_dt, da_dt = env.get_system_velocities() # best to see code. (dx_dt, dy_dt, da_dt)
             # print(f'X: {dx_dt} | Y: {dy_dt} | Angular V: {da_dt}')
@@ -122,11 +125,13 @@ if __name__ == '__main__':
             orientation = np.rad2deg(orientation_rad)
             # print(f'get relative heading: {rel_heading} | orientation_rad {orientation_rad} | orientation {orientation}')
 
-            recommended_move = np.random.choice(len(trajectories))
+            # i is from range(len(trajectories))
+            recommended_move = i # np.random.choice(len(trajectories))
+            print(f'will plot {recommended_move}')
             path_to_simulate = trajectories[recommended_move].copy()
 
             current_robot_pos = env.robot.state_['position']
-            print(f'path_to_simulate is {path_to_simulate[:2]}')
+            # print(f'path_to_simulate is {path_to_simulate[:2]}')
             for idx in range(len(path_to_simulate[0])):  # TODO this is wrong
                 path_to_simulate[0][idx] += current_robot_pos[0]
                 path_to_simulate[1][idx] += current_robot_pos[1]
@@ -137,7 +142,7 @@ if __name__ == '__main__':
             #### option a Direct #####         
             cords = path_to_simulate[-1]
             x, y = cords[0], cords[1]
-            x, y, theta = get_relative_pose([x, y], cords[2], [current_robot_pos[0], current_robot_pos[1]], env.robot.state_['orientation'])
+            # x, y, theta = get_relative_pose([x, y], cords[2], [current_robot_pos[0], current_robot_pos[1]], env.robot.state_['orientation'])
             state_rel_person, reward, done, _ = env.step([x, y])
 
             #### option b Micto steps #####   
@@ -154,13 +159,21 @@ if __name__ == '__main__':
             # action_set = compute_action_set(orientation_rad)
             # print(f'action_set {action_set}')
             # action = action_set[c]
-            sleep(1.50)
-            # sleep(2.00)
+
+            # image = env.get_current_observation_image()
+            # images.append(image) # image
+            images.append((x, y)) # points 
+            sleep(0.5)
             # if done:
             #     break
 
             # c += 1
-    
+        print(images)
+        # exit()
+        for img in images:
+            # plt.imshow(img, cmap='gray') # image
+            plt.plot(img, 'ro')  # points 
+        plt.show()
     print("END")
 
 

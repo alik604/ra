@@ -1,5 +1,9 @@
 # MCTS based follow ahead RL
 
+## Methods
+
+This is in [Google doc](https://docs.google.com/document/d/11x_Wpk4UQDjVFefjjUeyngc1KjLbhyIsAlf1_7Y_KVo/edit?usp=sharing) - Email me to be added as a editor. Only suggestions allowed, due to public facing link.
+
 ## Key files
 
 ### `MCTS.py`
@@ -15,6 +19,10 @@ I think I am using the generated trajectories worng. see `move_test.py`. I think
 ##### Test the damn trajectories
 
 So you have generated some new trajectories using `precompute_trajectories.py`, dont forgot to test them in `move_test.py` to see if they can be done without falling. I disabled falling and trained overnight :(  
+
+##### Generating the trajectories
+
+in navagation.launch add underscore to the followign line as such, `<remap from="/cmd_vel" to="/tb3_$(arg agent_num)/jackal_velocity_controller/cmd_vel_____" />`, for generating the trajectories
 
 ##### Ephemeral state
 
@@ -58,3 +66,33 @@ So you have generated some new trajectories using `precompute_trajectories.py`, 
 The file `rnn_single_threaded_ros.py`, is based on `rnn.py` which uses multiprocessing. This is world models (without the CNN-autoencoder), which was My and Emma's contribution to our CMPT 419 group project.
 
 Anthony's work was on ROS and taking my HINN (Human's next `x, y, theta` prediction given state, with is based on a laser scan) and using it to follow from ahead.
+
+#### How to run
+
+> Please note you might have to clone this repo with `git submodule update --init --recursive`, so get the contents of `/multi_jackal`.
+
+Lauching...
+
+1. launch_tb
+2. launch_nav
+3. launch_scripts  -> `python ../old_scripts/tf_node.py`
+4. launch_scripts  -> `python3 test_move.py`
+
+Where `/home/alik604/ra` is the path to the project directory.
+
+```bash
+source /opt/ros/melodic/setup.bash
+source ~/catkin_ws/devel/setup.bash
+
+alias launch_tb="cd ~/ra/far_ws && . devel/setup.bash && cd /home/alik604/ra/far_ws/ && roslaunch src/follow_ahead_rl/launch/turtlebot.launch"
+alias launch_nav="cd ~/ra/far_ws && . devel/setup.bash && cd /home/alik604/ra/far_ws/ && roslaunch src/follow_ahead_rl/launch/navigation.launch"
+alias launch_scripts="cd ~/ra/far_ws && . devel/setup.bash && cd /home/alik604/ra/far_ws/src/follow_ahead_rl/scripts && conda deactivate"
+```
+
+This is faster than the manual process...
+
+```bash
+catkin_make
+. devel/setup.bash
+roslaunch src/follow_ahead_rl/launch/turtlebot.launch
+```

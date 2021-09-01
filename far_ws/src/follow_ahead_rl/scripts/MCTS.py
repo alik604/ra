@@ -173,14 +173,13 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
     # path_to_simulate = np.around(path_to_simulate, 2)
     # print(f'[before] path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
 
+
     # // offset path_to_simulate with current robot pos
     for idx in range(len(path_to_simulate[0])):  # TODO this is wrong
         path_to_simulate[0][idx] += robot_pos[0]
         path_to_simulate[1][idx] += robot_pos[1]
     path_to_simulate = np.around(path_to_simulate, 2)
     # print(f'[after]  path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]} | has been adjust with x {robot_pos[0]} and y {robot_pos[1]}')
-    # print(f'trajectories {list(trajectories)}')
-    # print(f'path_to_simulate x: {path_to_simulate[0]} | y: {path_to_simulate[1]}')
 
 
     # // [robot] account for history. since env outputs states based on window of last 10. We also ensure pose is relative to robot.
@@ -198,7 +197,8 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
         robot_state["orientation"] = theta
         states_to_simulate_robot.append(robot_state)
 
-    # TODO why no just the last. that is where we step to...
+
+    # TODO why not just the last. that is where we step to...
     # // [robot] account for `path_to_simulate`, our chosen trajectory.
     NUMBER_SUB_STEPS = len(path_to_simulate[0])
     time_step = dTime/NUMBER_SUB_STEPS
@@ -217,6 +217,7 @@ def MCTS_recursive(trajectories, robot_history_predicted, person_history_predict
         states_to_simulate_robot.append(robot_state)
         robot_history_predicted.appendleft([x, y, theta])
         # print(f'robot_state["position"] {robot_state["position"]}')
+
 
     # // [person] predict person's next move. and account for history # add newest to front. flip and build `states_to_simulate_person`. ref for math https://courses.lumenlearning.com/boundless-physics/chapter/quantities-of-rotational-kinematics/
     person_next_state = predict_person(list(person_history_predicted))
