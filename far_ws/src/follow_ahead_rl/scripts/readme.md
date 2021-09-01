@@ -10,9 +10,9 @@ This is in [Google doc](https://docs.google.com/document/d/11x_Wpk4UQDjVFefjjUey
 
 > see in-line documentation and docstrings
 
-#### Nuances & Misc
+### Nuances & Misc
 
-##### Bugs I think I have
+#### Bugs I think I have
 
 I think I am using the generated trajectories worng. see `move_test.py`. I think `discrete_action_space.pickle` should be centered about (0,0), I think Payamn said otherwise, but I'm switching to my resoning in a last ditch hope.
 
@@ -20,18 +20,22 @@ It is going to be very important to test/visualize the trajectories, this is bei
 
 I disabled falling and trained overnight, which was a mistake .
 
-##### Generating the trajectories
+#### Generating the trajectories
 
 in navagation.launch add underscore to the followign line as such, `<remap from="/cmd_vel" to="/tb3_$(arg agent_num)/jackal_velocity_controller/cmd_vel_____" />`, for generating the trajectories
 
-##### Ephemeral state
+#### Ephemeral state
 
 `env.robot_simulated` and `env.person_simulated` have been added. Their state should be treated as ephemeral. in every simulation, the state is inherited from the real state, and is hence incorrect. This _state_ is then over written completely whenever `env.get_observation_relative_robot(states_to_simulate_robot, states_to_simulate_person)` is called, even if it is without pramaters.
     * velocity_history and orientation_history are not actually used.
 
-##### Ordering
+#### Ordering
 
 * There are two `deque` objects to have a rolling window. You append to the left, and the right-most element is ejected if the list is too long.  
+
+#### DDQN_Discrete.py
+
+* This is a self contained Q learning, this continous problum is made discrete by dymanically computing trajecties in the directions of the robot. I expected this is learn, but it did not. This make me worried about MCTS. I'd imagine 50% better results. perhaps this early on code on my was flaws, partically in the *dymanically computing trajecties* part, which is it's own local fuction.   
 
 ### `precompute_trajectories.py`
 
