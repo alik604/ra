@@ -16,9 +16,11 @@ This is in [Google doc](https://docs.google.com/document/d/11x_Wpk4UQDjVFefjjUey
 
 I think I am using the generated trajectories worng. see `move_test.py`. I think `discrete_action_space.pickle` should be centered about (0,0), I think Payamn said otherwise, but I'm switching to my resoning in a last ditch hope.
 
-It is going to be very important to test/visualize the trajectories, this is being done in `move_test.py` to see if they can be done without falling. **There is a bug here**, I have played around with when to and to-not make pose relative to the robot. The falling might be due to rounding, do ing the trajecty generations (pre-computing) phase. 
+It is going to be very important to test/visualize the trajectories, this is being done in `move_test.py` to see if they can be done without falling. **There is a bug here**, I have played around with when to and to-not make pose relative to the robot. The falling might be due to rounding, doing the trajecty generations (pre-computing) phase. 
 
-I disabled falling and trained overnight, which was a mistake .
+I disabled falling and trained overnight, which was a mistake.
+
+A secound bug is that following the trajectories will often cause the robot to fall. Perhaps the velocity in Gazebo is higher then the velocity in ros.
 
 #### Generating the trajectories
 
