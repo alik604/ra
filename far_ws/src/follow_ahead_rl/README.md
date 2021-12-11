@@ -1,6 +1,10 @@
 ## Installation 
 
+<<<<<<< HEAD
 ### Please see [Project Setup.pdf](Project%20Setup.pdf) for details
+=======
+### Please see *Project Setup.pdf*  for details
+>>>>>>> MCTS
 
 - Install [ROS1](http://wiki.ros.org/ROS/Installation)
 - Install [Gazebo 9.16](http://gazebosim.org/tutorials?cat=install&tut=install_ubuntu&ver=9.0)
@@ -16,3 +20,11 @@
 - Build project: `catkin_make`
 - Source workspace: `source devel/setup.bash`
 - Launch project: `roslaunch src/follow_ahead_rl/launch/turtlebot.launch`
+<<<<<<< HEAD
+=======
+
+## Development
+
+### Please see /scripts for details.
+The documentation is seprate, and has a link to a google doc for the methodological details
+>>>>>>> MCTS

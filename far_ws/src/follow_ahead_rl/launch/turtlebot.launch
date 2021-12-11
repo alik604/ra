@@ -1,5 +1,6 @@
 <launch>
   <arg name="floor"  default="$(find follow_ahead_rl)/models/empty_floor/model.sdf"/>
+<<<<<<< HEAD
   <arg name="marker"  default="$(find follow_ahead_rl)/urdf/obstacle_urdfs/marker.urdf"/>
 
   <node name="spawn_sdf0" pkg="gazebo_ros" type="spawn_model" args="-sdf -model floor1 -x 0 -y 0 -z 0 -Y 0 -file $(arg floor)" />
@@ -7,6 +8,11 @@
   <!-- Floor for Marker -->
   <node name="spawn_sdf1" pkg="gazebo_ros" type="spawn_model" args="-sdf -model floor2 -x 0 -y 0 -z 1.5 -Y 0 -file $(arg floor)" />
 
+=======
+
+  <node name="spawn_sdf0" pkg="gazebo_ros" type="spawn_model" args="-sdf -model floor1 -x 0 -y 0 -z 0 -Y 0 -file $(arg floor)" />
+
+>>>>>>> MCTS
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find follow_ahead_rl)/worlds/empty.world"/>
     <arg name="paused" value="false"/>
@@ -18,6 +24,7 @@
 
   <include file="$(find follow_ahead_rl)/launch/spawn_robot.launch"/>
 
+<<<<<<< HEAD
   <include file="$(find follow_ahead_rl)/launch/spawn_obstacles.launch"/>
 
   <include file="$(find follow_ahead_rl)/launch/navigation.launch"/>
@@ -35,3 +42,7 @@
   />
 
 </launch>
+=======
+</launch>
+
+>>>>>>> MCTS

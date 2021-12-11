@@ -38,7 +38,11 @@ from rosgraph_msgs.msg import Clock
 from costmap_converter.msg import ObstacleArrayMsg
 from costmap_converter.msg import ObstacleMsg
 from gazebo_msgs.msg import ModelStates
+<<<<<<< HEAD
 from geometry_msgs.msg import Twist
+=======
+from geometry_msgs.msg import Twist, PoseStamped # PoseStamped added
+>>>>>>> MCTS
 
 from gazebo_msgs.srv import SetModelState
 
@@ -581,7 +585,10 @@ class GazeborosEnv(gym.Env):
     def use_test_setting(self):
         self.is_use_test_setting = True
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> MCTS
     def set_agent(self, agent_num):
         try:
             self.node = rospy.init_node('gym_gazeboros_{}'.format(agent_num))

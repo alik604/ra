@@ -4,6 +4,7 @@
 
 By Emma Hughson, Kai Ho Anthony Cheung, and Khizr Ali Pardhan. An expansion upon [*LBGP: Learning Based Goal Planning for Autonomous Following in Front*](https://arxiv.org/pdf/2011.03125v1.pdf). 
 
+<<<<<<< HEAD
 ## Meta 
 Branch: *Purpose*  
 * Main: {Team} This branch contains the working environment designated for testing the HINN and trajectory planner solution.  For evaluation us the hinn_dh_eval.
@@ -17,13 +18,26 @@ Branch: *Purpose*
 
 
 To run, you will need to, in sourced terminals & in-order, run the following [launch file](far_ws/src/follow_ahead_rl/launch), `turtlebot.launch`, and code like [move_test.py](far_ws/src/follow_ahead_rl/scripts/move_test.py) or [td_ddpg_continuous.py](far_ws/src/follow_ahead_rl/scripts/td_ddpg_continuous.py)
+=======
+## Meta
+
+This branch is for MCTS and is a fork of the World Models brach. 
+
+The file `rnn_single_threaded_ros.py`, is based on `rnn.py` which uses multiprocessing. [Folder link](far_ws/src/follow_ahead_rl/scripts)
+
+To run, you will need to, in sourced terminals & in-order, run [tf_node.py](far_ws/src/follow_ahead_rl/old_script) and the following [launch files](far_ws/src/follow_ahead_rl/launch), `turtlebot.launch`, `navigation.launch`, and finally, code like [move_test.py](far_ws/src/follow_ahead_rl/scripts/move_test.py)
+>>>>>>> MCTS
 
 
 ## Introduction
 
 **What is Follow-Ahead?** Following-ahead algorithms use machine learning to predict human trajectory to stay ahead of humans. Follow-behind algorithms have had more recognition. For example, one application is a follow-behind shopping cart. **But,** there is a lack of security. 
 
+<<<<<<< HEAD
 **Why Model-Based Methods: **The field of reinforcement learning is **primarily focused** on model-free methods. Model-based methods have been shown to be more efficient than model-free.
+=======
+**Why Model-Based Methods:** The field of reinforcement learning is **primarily focused** on model-free methods. Model-based methods have been shown to be more efficient than model-free.
+>>>>>>> MCTS
 
 **What our solution is: Extending the work** of Nikdel et al., we will be using model-based algorithms with the addition of obstacle avoidance.
 
@@ -35,7 +49,11 @@ Our approach is to use a popular model-based learning algorithm (i.e., World Mod
 
 **World Model**: 
 
+<<<<<<< HEAD
 > Long Short Term Memory Network -> Controller
+=======
+> Convolutional Variational AutoEncoder -> Long Short Term Memory Network -> Controller.
+>>>>>>> MCTS
 
 **HINN + Heuristic Search:** The Human Intent Neural Network is a feed forward neural network, which outputs the prediction of the next human state. Prediction is used to generate a goal for the robot. Heuristic search algorithms: Monte Carlo Tree Search (MCTS) or Distance Heuristic.
 

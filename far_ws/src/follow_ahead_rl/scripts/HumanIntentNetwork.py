@@ -1,15 +1,26 @@
 '''
+<<<<<<< HEAD
 @Author Khizr Ali Pardhan 
     - HINN torch code 
     - Collection and ANN training script. which have since been split in to `hinn_data_collector.py` and `hinn_train.py`
 
 NN does:
  - Takes state 
+=======
+NN does:
+ - Takes state 
+ - - loss. MSE(human.next_state and human.next_state_prime)
+>>>>>>> MCTS
  - Output possible moves of human
 
  - Pass into MCTS
  - MCST outputs best action
+<<<<<<< HEAD
  - Distance huristic  
+=======
+
+Does this sound like Double Q learning?
+>>>>>>> MCTS
 --------------------------------------------------------------
 How to use:
 Terminal 1: Launch turtlebot.launch
@@ -20,8 +31,12 @@ Terminal 4: run this file
 * DON'T FORGET TO SOURCE THE WORKSPACE IN EACh TERMINAL
 ie: cd .../far_ws && source devel/setup.bash
 
+<<<<<<< HEAD
 if you have a issue with `tf_node.py`, follow this
 https://answers.ros.org/question/326226/importerror-dynamic-module-does-not-define-module-export-function-pyinit__tf2/
+=======
+if you have a issue with `tf_node.py`, follow this https://answers.ros.org/question/326226/importerror-dynamic-module-does-not-define-module-export-function-pyinit__tf2/
+>>>>>>> MCTS
 '''
 
 import os
@@ -30,6 +45,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
+<<<<<<< HEAD
 # class RBF_HumanIntentNetwork(nn.Module):
 #     '''
 #     theory:    http://mccormickml.com/2013/08/15/radial-basis-function-network-rbfn-tutorial/
@@ -59,6 +75,37 @@ import torch.optim as optim
 #         radial_val = self.kernel_fun(batches)
 #         class_score = self.linear(radial_val)
 #         return class_score
+=======
+class RBF_HumanIntentNetwork(nn.Module):
+    '''
+    theory:    http://mccormickml.com/2013/08/15/radial-basis-function-network-rbfn-tutorial/
+    code:      https://github.com/csnstat/rbfn
+    code-alt:  https://github.com/JeremyLinux/PyTorch-Radial-Basis-Function-Layer
+    '''
+
+    def __init__(self, centers=500, num_class=2):
+        super(RBF_HumanIntentNetwork, self).__init__()
+        self.num_class = num_class
+        self.num_centers = centers  # .size(0)
+
+        self.centers = nn.Parameter(centers)
+        self.beta = nn.Parameter(torch.ones(1, self.num_centers)/10)
+        self.linear = nn.Linear(self.num_centers, self.num_class, bias=True)
+        utils.initialize_weights(self)
+
+    def kernel_fun(self, batches):
+        n_input = batches.size(0)  # number of inputs
+        A = self.centers.view(self.num_centers, -1).repeat(n_input, 1, 1)
+        B = batches.view(n_input, -1).unsqueeze(1).repeat(1,
+                                                          self.num_centers, 1)
+        C = torch.exp(-self.beta.mul((A-B).pow(2).sum(2, keepdim=False).sqrt()))
+        return C
+
+    def forward(self, batches):
+        radial_val = self.kernel_fun(batches)
+        class_score = self.linear(radial_val)
+        return class_score
+>>>>>>> MCTS
 
 
 class HumanIntentNetwork(nn.Module):
@@ -68,8 +115,13 @@ class HumanIntentNetwork(nn.Module):
         self.checkpoint_file = os.path.join(
             self.checkpoint_dir, 'HumanIntentNetwork')
         self.fc1 = nn.Linear(input_dim, inner) 
+<<<<<<< HEAD
         self.fc2 = nn.Linear(inner, inner*4)
         self.fc2_5 = nn.Linear(inner*4, inner)
+=======
+        self.fc2 = nn.Linear(inner, inner*3)
+        self.fc2_5 = nn.Linear(inner*3, inner)
+>>>>>>> MCTS
         self.fc3 = nn.Linear(inner, output_dim)
         self.selu = nn.SELU()  # ReLU, LeakyReLU
 

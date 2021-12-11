@@ -87,4 +87,8 @@ if __name__ == '__main__':
     plt.savefig('DH_EVAL_CR.png')
     plt.show()
     
+<<<<<<< HEAD
     print("END")
+=======
+    print("END")
+>>>>>>> MCTS

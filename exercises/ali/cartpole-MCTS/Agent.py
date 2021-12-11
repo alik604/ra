@@ -6,6 +6,7 @@ import random
 define the replay buffer and corresponding algorithms like PER
 """
 
+<<<<<<< HEAD
 
 import torch
 import torch.nn as nn
@@ -14,6 +15,15 @@ from datetime import datetime
 import os
 
 import gym
+=======
+from Agent_utils import net, linear_schedule, reward_recorder, replay_buffer
+
+import gym
+from datetime import datetime
+import os
+
+import torch
+>>>>>>> MCTS
 
 
 def get_args():
@@ -38,6 +48,10 @@ def get_args():
 
     return args
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> MCTS
 class dqn_agent:
     def __init__(self):
         self.args = get_args()
@@ -73,6 +87,7 @@ class dqn_agent:
         # define the linear schedule of the exploration
         self.exploration_schedule = linear_schedule(int(self.args.n_games * self.args.exploration_fraction), self.args.final_ratio, self.args.init_ratio)
 
+<<<<<<< HEAD
     # start to do the training
     def learn(self):
         # the episode reward
@@ -118,6 +133,8 @@ class dqn_agent:
 
         self.env.close()
 
+=======
+>>>>>>> MCTS
     # update the network
     def _update_network(self, samples):
         obses, actions, rewards, obses_next, dones = samples
@@ -169,6 +186,7 @@ class dqn_agent:
         action = np.argmax(action_value) if random.random() > explore_eps else np.random.randint(action_value.shape[0])
         return action
 
+<<<<<<< HEAD
     def select_actions_boltzmann(self, action_value, temperature=1.0): # alt temperature 0.5
         # TODO is the the same as softmax?
         action_value = action_value.cpu().numpy().squeeze()
@@ -300,3 +318,75 @@ class linear_schedule:
 
 agent = dqn_agent()
 agent.learn()
+=======
+    def select_actions_boltzmann(self, action_value, n_actions, temperature=1.0, return_action_and_prob=False): # alt temperature 0.5
+        # TODO is the the same as softmax?
+        # action_value = action_value.cpu().numpy().squeeze()
+        # select actions
+        # weights = np.exp(action_value / temperature)
+        # distribution = {action: weights[action] / np.sum(n_actions) for action in n_actions} # self.num_actions
+        # action = np.random.choice(list(distribution.keys()), 1, p=np.array(list(distribution.values())))[0]
+
+        # print(action_value)
+        softmax = torch.softmax(action_value, 0)
+        distribution = softmax.numpy()
+        action = np.random.choice(n_actions, 1, p=distribution)[0]
+        # print(f'probs {softmax.numpy()}')
+        # print(f'action {action}')
+        # print(f'prov of action selected {distribution[action]}')
+
+        if return_action_and_prob:
+            return action, distribution[action]
+        else:
+            return action
+
+
+
+# start to do the training
+def learn(agent):
+    # the episode reward
+    episode_reward = reward_recorder()
+    obs = np.array(agent.env.reset())
+    td_loss = 0
+    for game in range(agent.args.n_games):
+        done = False
+        while not done:
+            agent.env.render()
+            explore_eps = agent.exploration_schedule.get_value(game)
+            with torch.no_grad():
+                obs_tensor = agent._to_tensors(obs)
+                action_value = agent.net(obs_tensor)
+            # select actions
+            action = agent.select_actions(action_value, explore_eps)
+
+            # execute actions
+            obs_, reward, done, _ = agent.env.step(action)
+            obs_ = np.array(obs_)
+            # append the samples
+            agent.buffer.add(obs, action, reward, obs_, float(done))
+            obs = obs_
+            # add the rewards
+            episode_reward.add_rewards(reward)
+            if game % agent.args.train_freq == 0:
+                # start to sample the samples from the replay buffer
+                batch_samples = agent.buffer.sample(agent.args.batch_size)
+                td_loss = agent._update_network(batch_samples)
+
+            if game % 150 == 0:
+                # update the target network
+                agent.target_net.load_state_dict(agent.net.state_dict())
+
+            if done and episode_reward.num_episodes % 10 == 0:
+                print('[{}], Episode: {}, Rewards: {:.0f}, Loss: {:.3f}, Explore_eps {:.3f}'.format(datetime.now(), episode_reward.num_episodes, episode_reward.value, td_loss, explore_eps))
+                torch.save(agent.net.state_dict(), agent.model_path + '/model.pt')
+
+            if done:
+                obs = np.array(agent.env.reset())
+                # start new episode to store rewards
+                episode_reward.start_new_episode()  # history last 1 episode
+
+    agent.env.close()
+
+# agent = dqn_agent()
+# learn(agent)
+>>>>>>> MCTS

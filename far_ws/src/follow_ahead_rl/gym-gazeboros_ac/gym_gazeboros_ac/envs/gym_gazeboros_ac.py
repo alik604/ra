@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+<<<<<<< HEAD
 
 from datetime import datetime
 
@@ -18,6 +19,33 @@ import numpy as np
 import cv2 as cv
 
 import rospy
+=======
+# import dynamic_window_approach as dwa
+from datetime import datetime
+from time import sleep
+
+import traceback
+import pickle
+import os
+import time
+import math
+import random
+import threading
+import _thread
+import queue
+
+from copy import deepcopy
+
+# from cv_bridge import CvBridge # for visualize_observation()
+
+import rospy
+import gym
+from gym.utils import seeding
+
+import numpy as np
+import cv2 as cv
+
+>>>>>>> MCTS
 # Brings in the SimpleActionClient
 import actionlib
 # Brings in the .action file and messages used by the move base action
@@ -35,6 +63,7 @@ from rosgraph_msgs.msg import Clock
 from costmap_converter.msg import ObstacleArrayMsg
 from costmap_converter.msg import ObstacleMsg
 from gazebo_msgs.msg import ModelStates
+<<<<<<< HEAD
 from geometry_msgs.msg import Twist
 
 from gazebo_msgs.srv import SetModelState
@@ -49,14 +78,38 @@ from simple_pid import PID
 import pickle
 import logging
 
+=======
+from geometry_msgs.msg import Twist, PoseStamped  # PoseStamped added
+from nav_msgs.msg import Path
+
+from gazebo_msgs.srv import SetModelState
+
+# quat - to eular # i need only 1 of the indeex, probably only the last
+from squaternion import Quaternion
+from simple_pid import PID
+
+import matplotlib.pyplot as plt
+
+import logging
+>>>>>>> MCTS
 logger = logging.getLogger(__name__)
 
 # Environment Parameters
 class EnvConfig:
+<<<<<<< HEAD
     # Boolean to make robots spawn at constant locations
     USE_TESTING = False
 
     # Set to move obstacles out of the way in case they exist but you don't want them in the way
+=======
+    # Boolean to make robots spawn at constant locations. no noise. set true at early training to make task easier. 
+    USE_TESTING = False
+
+    # Evaluation Mode, Removes stochasticity when initializing environment
+    EVALUATION_MODE = False
+
+    # If False, Moves obstacles out of the way
+>>>>>>> MCTS
     USE_OBSTACLES = False
 
     # Pattern to init obstacles
@@ -74,13 +127,21 @@ class EnvConfig:
     SEND_TEB_OBSTACLES = True
 
     # Gets person robot to use move base
+<<<<<<< HEAD
     PERSON_USE_MB = True
+=======
+    PERSON_USE_MB = False
+>>>>>>> MCTS
 
     # Episode Length
     EPISODE_LEN = 15
 
     # Returns Human State only in get_observations if True
+<<<<<<< HEAD
     RETURN_HINN_STATE = True
+=======
+    RETURN_HINN_STATE = False
+>>>>>>> MCTS
 
     # Size to reduce laser scan to
     SCAN_REDUCTION_SIZE = 20
@@ -91,6 +152,20 @@ class EnvConfig:
     # If True, moves jackal bot out of the way and puts obstacles around person
     TRAIN_HINN = False
 
+<<<<<<< HEAD
+=======
+    # For NON-HINN OUTPUT ONLY: Outputs laser scan if true
+    OUTPUT_OBSTACLES_IN_STATE = True
+
+'''
+TODO; Notes
+Create my own history system. Mine would not have a notion of save rate. In a sense this is downsampling data. add_element is the problum
+I needed a rolling window 
+call history of object, get elements. we have al lthe lements N (maybe 10). This is a rolling windows class  
+'''
+
+
+>>>>>>> MCTS
 class History():
     def __init__(self, window_size, update_rate, save_rate=10):
         self.idx = 0
@@ -102,7 +177,28 @@ class History():
         self.prev_add_time = rospy.Time.now().to_sec() - 1
         self.window_size = window_size
         self.avg_frame_rate = None
+<<<<<<< HEAD
         self.time_data_= []
+=======
+        self.time_data_ = []
+
+    def deepcopy(self):
+
+        copy = History(self.window_size, self.update_rate, self.save_rate)
+
+        copy.idx = self.idx
+        copy.update_rate = self.update_rate
+        copy.save_rate = self.save_rate
+        copy.lock = threading.Lock()
+        copy.memory_size = self.memory_size
+        copy.data = self.data
+        copy.prev_add_time = self.prev_add_time
+        copy.window_size = self.window_size
+        copy.avg_frame_rate = self.avg_frame_rate
+        copy.time_data_ = self.time_data_
+
+        return copy
+>>>>>>> MCTS
 
     def add_element(self, element):
         """
@@ -134,10 +230,18 @@ class History():
             time.sleep(0.1)
         skip_frames = -int(math.ceil(self.avg_frame_rate / self.update_rate))
         with self.lock:
+<<<<<<< HEAD
             index = self.idx #(self.idx - 1)% self.window_size
             if self.window_size * abs(skip_frames) >= self.memory_size:
                 rospy.logerr("error in get element memory not enough update rate{} avg_frame_rate{} mem_size {} skipf: {}".format(self.update_rate, self.avg_frame_rate, self.memory_size, skip_frames))
             for i in range (self.window_size):
+=======
+            index = self.idx  # (self.idx - 1)% self.window_size
+            if self.window_size * abs(skip_frames) >= self.memory_size:
+                rospy.logerr("error in get element memory not enough update rate{} avg_frame_rate{} mem_size {} skipf: {}".format(
+                    self.update_rate, self.avg_frame_rate, self.memory_size, skip_frames))
+            for i in range(self.window_size):
+>>>>>>> MCTS
                 return_data.append(self.data[index])
                 index = (index + skip_frames) % self.window_size
 
@@ -174,12 +278,17 @@ class Robot():
         self.use_movebase = use_movebase
         self.max_angular_vel = max_angular_speed
         self.max_linear_vel = max_linear_speed
+<<<<<<< HEAD
         self.max_rel_pos_range = 5.0 # meter
+=======
+        self.max_rel_pos_range = 5.0  # meter
+>>>>>>> MCTS
         self.width_laserelement_image = 100
         self.height_laser_image = 50
         self.state_ = {'position':      (None, None),
                        'orientation':   None}
         if self.use_jackal:
+<<<<<<< HEAD
             self.cmd_vel_pub =  rospy.Publisher('/{}/jackal_velocity_controller/cmd_vel'.format(name), Twist, queue_size=1)
         else:
             self.cmd_vel_pub =  rospy.Publisher('/{}/cmd_vel'.format(name), Twist, queue_size=1)
@@ -187,6 +296,18 @@ class Robot():
         if ("tb3" in self.name and self.use_movebase) or ("person" in self.name and EnvConfig.PERSON_USE_MB):
             # Create an action client called "move_base" with action definition file "MoveBaseAction"
             self.action_client_ = actionlib.SimpleActionClient('/move_base_{}'.format(self.name),MoveBaseAction)
+=======
+            self.cmd_vel_pub = rospy.Publisher(
+                '/{}/jackal_velocity_controller/cmd_vel'.format(name), Twist, queue_size=1)
+        else:
+            self.cmd_vel_pub = rospy.Publisher(
+                '/{}/cmd_vel'.format(name), Twist, queue_size=1)
+
+        if ("tb3" in self.name and self.use_movebase) or ("person" in self.name and EnvConfig.PERSON_USE_MB):
+            # Create an action client called "move_base" with action definition file "MoveBaseAction"
+            self.action_client_ = actionlib.SimpleActionClient(
+                '/move_base_{}'.format(self.name), MoveBaseAction)
+>>>>>>> MCTS
             # Waits until the action server has started up and started listening for goals.
             self.action_client_.wait_for_server(rospy.rostime.Duration(0.4))
         else:
@@ -198,24 +319,42 @@ class Robot():
         else:
             self.angular_pid = PID(2.5, 0, 0.03, setpoint=0)
             self.linear_pid = PID(2.5, 0, 0.05, setpoint=0)
+<<<<<<< HEAD
         self.pos_history = History(self.window_size_history, self.update_rate_states)
         self.orientation_history = History(self.window_size_history, self.update_rate_states)
         self.velocity_history = History(self.window_size_history, self.update_rate_states)
+=======
+        self.pos_history = History(
+            self.window_size_history, self.update_rate_states)
+        self.orientation_history = History(
+            self.window_size_history, self.update_rate_states)
+        self.velocity_history = History(
+            self.window_size_history, self.update_rate_states)
+>>>>>>> MCTS
         self.is_collided = False
         self.is_pause = False
         self.reset = False
         self.scan_image = None
 
     def calculate_ahead(self, distance):
+<<<<<<< HEAD
         x = self.state_['position'][0] + math.cos(self.state_["orientation"]) * distance
         y = self.state_['position'][1] + math.sin(self.state_["orientation"]) * distance
         return (x,y)
 
+=======
+        x = self.state_['position'][0] + \
+            math.cos(self.state_["orientation"]) * distance
+        y = self.state_['position'][1] + \
+            math.sin(self.state_["orientation"]) * distance
+        return (x, y)
+>>>>>>> MCTS
 
     def movebase_cancel_goals(self):
         self.action_client_.cancel_all_goals()
         self.stop_robot()
 
+<<<<<<< HEAD
     def movebase_client_goal(self, goal_pos, goal_orientation):
        # Creates a new goal with the MoveBaseGoal constructor
         move_base_goal = MoveBaseGoal()
@@ -223,6 +362,19 @@ class Robot():
         move_base_goal.target_pose.header.stamp = rospy.Time.now()
         move_base_goal.target_pose.pose.position.x = goal_pos[0]
         move_base_goal.target_pose.pose.position.y = goal_pos[1]        
+=======
+    # TODO relative to TB odom frame
+    def movebase_client_goal(self, goal_pos, goal_orientation):
+        # /move_base_node_0/TebLocalPlannerROS/local_plan
+
+       # Creates a new goal with the MoveBaseGoal constructor
+        move_base_goal = MoveBaseGoal()
+        move_base_goal.target_pose.header.frame_id = "tb3_{}/odom".format(
+            self.agent_num)
+        move_base_goal.target_pose.header.stamp = rospy.Time.now()
+        move_base_goal.target_pose.pose.position.x = goal_pos[0]
+        move_base_goal.target_pose.pose.position.y = goal_pos[1]
+>>>>>>> MCTS
         quaternion_rotation = Quaternion.from_euler(0, goal_orientation, 0)
 
         move_base_goal.target_pose.pose.orientation.x = quaternion_rotation[3]
@@ -247,7 +399,12 @@ class Robot():
             if self.reset:
                 return (None, None)
             if counter_problem > 20:
+<<<<<<< HEAD
                 rospy.logdebug("waiting for pos to be available {}/{}".format(counter_problem/10, 20))
+=======
+                rospy.logdebug(
+                    "waiting for pos to be available {}/{}".format(counter_problem/10, 20))
+>>>>>>> MCTS
             time.sleep(0.001)
             counter_problem += 1
             if counter_problem > 200:
@@ -261,7 +418,12 @@ class Robot():
             if self.reset:
                 return None
             if counter_problem > 20:
+<<<<<<< HEAD
                 rospy.logdebug("waiting for pos to be available {}/{}".format(counter_problem/10, 20))
+=======
+                rospy.logdebug(
+                    "waiting for pos to be available {}/{}".format(counter_problem/10, 20))
+>>>>>>> MCTS
             time.sleep(0.001)
             counter_problem += 1
             if counter_problem > 200:
@@ -272,8 +434,13 @@ class Robot():
         return (self.state_['position'][0] is not None)
 
     def is_observation_ready(self):
+<<<<<<< HEAD
         return (self.pos_history.avg_frame_rate is not None and\
                 self.orientation_history.avg_frame_rate is not None and\
+=======
+        return (self.pos_history.avg_frame_rate is not None and
+                self.orientation_history.avg_frame_rate is not None and
+>>>>>>> MCTS
                 self.velocity_history.avg_frame_rate is not None)
 
     def update(self, init_pose):
@@ -285,11 +452,25 @@ class Robot():
         else:
             self.angular_pid = PID(2.5, 0, 0.03, setpoint=0)
             self.linear_pid = PID(2.5, 0, 0.05, setpoint=0)
+<<<<<<< HEAD
         self.pos_history = History(self.window_size_history, self.update_rate_states)
         self.orientation_history = History(self.window_size_history, self.update_rate_states)
         self.velocity_history = History(self.window_size_history, self.update_rate_states)
         self.velocity_history.add_element((0,0))
         self.pos_history.add_element((init_pose["pos"][0],init_pose["pos"][1]))
+=======
+
+        self.pos_history = History(
+            self.window_size_history, self.update_rate_states)
+        self.orientation_history = History(
+            self.window_size_history, self.update_rate_states)
+        self.velocity_history = History(
+            self.window_size_history, self.update_rate_states)
+
+        self.velocity_history.add_element((0, 0))
+        self.pos_history.add_element(
+            (init_pose["pos"][0], init_pose["pos"][1]))
+>>>>>>> MCTS
         self.orientation_history.add_element(init_pose["orientation"])
         self.log_history = []
         if self.is_testing:
@@ -314,7 +495,11 @@ class Robot():
         self.orientation_history.add_element(state["orientation"])
         self.pos_history.add_element(state["position"])
         self.velocity_history.add_element(state["velocity"])
+<<<<<<< HEAD
         if self.is_testing and abs (rospy.Time.now().to_sec()- self.last_time_added) > 0.01:
+=======
+        if self.is_testing and abs(rospy.Time.now().to_sec() - self.last_time_added) > 0.01:
+>>>>>>> MCTS
             self.all_pose_.append(self.state_.copy())
             self.last_time_added = rospy.Time.now().to_sec()
 
@@ -325,6 +510,10 @@ class Robot():
         return self.velocity_history.get_latest()
 
     def pause(self):
+<<<<<<< HEAD
+=======
+        print('Pausing...')
+>>>>>>> MCTS
         self.is_pause = True
         self.stop_robot()
 
@@ -336,6 +525,7 @@ class Robot():
             return
 
         if self.use_goal:
+<<<<<<< HEAD
             if "person" in self.name:                
                 pose = self.get_pos()
                 pos_global = [pose[0]+action[0], pose[1]+action[1]]
@@ -343,6 +533,17 @@ class Robot():
                 pos = GazeborosEnv.denormalize(action[0:2], self.max_rel_pos_range)
                 pos_global = GazeborosEnv.get_global_position(pos, self.relative)
                 
+=======
+            if "person" in self.name:
+                pose = self.get_pos()
+                pos_global = [pose[0]+action[0], pose[1]+action[1]]
+            else:
+                pos = GazeborosEnv.denormalize(
+                    action[0:2], self.max_rel_pos_range)
+                pos_global = GazeborosEnv.get_global_position(
+                    pos, self.relative)
+
+>>>>>>> MCTS
             if target_orientation:
                 self.goal["orientation"] = target_orientation
             else:
@@ -353,6 +554,7 @@ class Robot():
             if self.use_movebase:
                 self.movebase_client_goal(pos_global, self.goal["orientation"])
         else:
+<<<<<<< HEAD
             linear_vel = max(min(action[0]*self.max_linear_vel, self.max_linear_vel), -self.max_linear_vel)
             angular_vel = max(min(action[1]*self.max_angular_vel, self.max_angular_vel), -self.max_angular_vel)
 
@@ -363,6 +565,21 @@ class Robot():
             self.cmd_vel_pub.publish(cmd_vel)
 
 
+=======
+            linear_vel = max(
+                min(action[0]*self.max_linear_vel, self.max_linear_vel), -self.max_linear_vel)
+            angular_vel = max(
+                min(action[1]*self.max_angular_vel, self.max_angular_vel), -self.max_angular_vel)
+
+            cmd_vel = Twist()
+            # float(self.current_vel_.linear.x -(self.current_vel_.linear.x - linear_vel)*0.9)
+            cmd_vel.linear.x = linear_vel
+            # -float(self.current_vel_.angular.z - (self.current_vel_.angular.z - angular_vel)*0.9)
+            cmd_vel.angular.z = angular_vel
+            self.current_vel_ = cmd_vel
+            self.cmd_vel_pub.publish(cmd_vel)
+
+>>>>>>> MCTS
     def stop_robot(self):
         self.cmd_vel_pub.publish(Twist())
 
@@ -372,19 +589,34 @@ class Robot():
             return None, None
         angle = math.atan2(pos[1] - current_pos[1], pos[0] - current_pos[0])
         distance = math.hypot(pos[0] - current_pos[0], pos[1] - current_pos[1])
+<<<<<<< HEAD
         angle = (angle - self.state_["orientation"] + math.pi) % (math.pi * 2) - math.pi
+=======
+        angle = (angle - self.state_["orientation"] +
+                 math.pi) % (math.pi * 2) - math.pi
+
+>>>>>>> MCTS
         return angle, distance
 
     def publish_cmd_vel(self, linear, angular):
         cmd_vel = Twist()
+<<<<<<< HEAD
         angular_vel = min(max(angular, -self.max_angular_vel),self.max_angular_vel)
+=======
+        angular_vel = min(max(angular, -self.max_angular_vel),
+                          self.max_angular_vel)
+>>>>>>> MCTS
         linear_vel = min(max(linear, 0), self.max_linear_vel)
         cmd_vel.linear.x = float(linear_vel)
         cmd_vel.angular.z = float(angular_vel)
         self.cmd_vel_pub.publish(cmd_vel)
 
     def use_selected_person_mod(self, person_mode):
+<<<<<<< HEAD
         while person_mode<=6:
+=======
+        while person_mode <= 6:
+>>>>>>> MCTS
             if self.is_pause:
                 self.stop_robot()
                 return
@@ -406,6 +638,7 @@ class Robot():
                 angular_vel = -self.max_angular_vel/6
             elif person_mode == 4:
                 linear_vel, angular_vel = self.get_velocity()
+<<<<<<< HEAD
                 linear_vel = linear_vel - (linear_vel - (random.random()/2 + 0.5))/2.
                 angular_vel = -self.max_angular_vel/6
             elif person_mode == 5:
@@ -416,6 +649,22 @@ class Robot():
                 linear_vel, angular_vel = self.get_velocity()
                 linear_vel = linear_vel - (linear_vel - (random.random()/2 + 0.5))/2.
                 angular_vel = angular_vel - (angular_vel - (random.random()-0.5)*2)/2.
+=======
+                linear_vel = linear_vel - \
+                    (linear_vel - (random.random()/2 + 0.5))/2.
+                angular_vel = -self.max_angular_vel/6
+            elif person_mode == 5:
+                linear_vel, angular_vel = self.get_velocity()
+                linear_vel = linear_vel - \
+                    (linear_vel - (random.random()/2 + 0.5))/2.
+                angular_vel = self.max_angular_vel/6
+            elif person_mode == 6:
+                linear_vel, angular_vel = self.get_velocity()
+                linear_vel = linear_vel - \
+                    (linear_vel - (random.random()/2 + 0.5))/2.
+                angular_vel = angular_vel - \
+                    (angular_vel - (random.random()-0.5)*2)/2.
+>>>>>>> MCTS
             self.publish_cmd_vel(linear_vel, angular_vel)
             time.sleep(0.002)
 
@@ -426,7 +675,12 @@ class Robot():
             while self.goal["pos"] is None:
                 time.sleep(0.1)
                 continue
+<<<<<<< HEAD
             diff_angle, distance = self.angle_distance_to_point(self.goal["pos"])
+=======
+            diff_angle, distance = self.angle_distance_to_point(
+                self.goal["pos"])
+>>>>>>> MCTS
             time_prev = rospy.Time.now().to_sec()
             while not distance < 0.1 and abs(rospy.Time.now().to_sec() - time_prev) < 5:
                 if self.is_pause:
@@ -435,16 +689,31 @@ class Robot():
                 if self.reset:
                     self.stop_robot()
                     return
+<<<<<<< HEAD
                 diff_angle, distance = self.angle_distance_to_point(self.goal["pos"])
+=======
+                diff_angle, distance = self.angle_distance_to_point(
+                    self.goal["pos"])
+>>>>>>> MCTS
                 if distance is None:
                     return
 
                 if self.reset:
                     return
 
+<<<<<<< HEAD
                 angular_vel = -min(max(self.angular_pid(diff_angle), -self.max_angular_vel),self.max_angular_vel)
                 linear_vel = min(max(self.linear_pid(-distance), 0), self.max_linear_vel)
                 linear_vel = linear_vel * math.pow((abs(math.pi - abs(diff_angle))/math.pi), 1.5)
+=======
+                angular_vel = - \
+                    min(max(self.angular_pid(diff_angle), -
+                        self.max_angular_vel), self.max_angular_vel)
+                linear_vel = min(
+                    max(self.linear_pid(-distance), 0), self.max_linear_vel)
+                linear_vel = linear_vel * \
+                    math.pow((abs(math.pi - abs(diff_angle))/math.pi), 1.5)
+>>>>>>> MCTS
 
                 self.publish_cmd_vel(linear_vel, angular_vel)
                 time.sleep(0.01)
@@ -459,7 +728,11 @@ class Robot():
 
         diff_angle, distance = self.angle_distance_to_point(pos)
         if distance is None:
+<<<<<<< HEAD
             print (self.get_pos())
+=======
+            print(self.get_pos())
+>>>>>>> MCTS
             return
         time_prev = rospy.Time.now().to_sec()
         while not distance < 0.2 and abs(rospy.Time.now().to_sec() - time_prev) < 5:
@@ -475,9 +748,18 @@ class Robot():
             if self.reset:
                 return
 
+<<<<<<< HEAD
             angular_vel = -min(max(self.angular_pid(diff_angle), -self.max_angular_vel),self.max_angular_vel)
             linear_vel = min(max(self.linear_pid(-distance), 0), self.max_linear_vel)
             linear_vel = linear_vel * math.pow((abs(math.pi - abs(diff_angle))/math.pi), 2)
+=======
+            angular_vel = -min(max(self.angular_pid(diff_angle), -
+                               self.max_angular_vel), self.max_angular_vel)
+            linear_vel = min(
+                max(self.linear_pid(-distance), 0), self.max_linear_vel)
+            linear_vel = linear_vel * \
+                math.pow((abs(math.pi - abs(diff_angle))/math.pi), 2)
+>>>>>>> MCTS
 
             self.publish_cmd_vel(linear_vel, angular_vel)
             time.sleep(0.01)
@@ -491,7 +773,12 @@ class Robot():
             if self.reset:
                 return (None, None)
             if counter_problem > 20:
+<<<<<<< HEAD
                 rospy.logwarn("waiting for goal to be available {}/{}".format(counter_problem/10, 20))
+=======
+                rospy.logwarn(
+                    "waiting for goal to be available {}/{}".format(counter_problem/10, 20))
+>>>>>>> MCTS
             time.sleep(0.01)
             counter_problem += 1
             if counter_problem > 200:
@@ -504,9 +791,31 @@ class Robot():
 
         return self.goal
 
+<<<<<<< HEAD
     def get_laser_image(self):
         return np.expand_dims(self.scan_image, axis=2)
 
+=======
+    def get_pos(self):
+        counter_problem = 0
+        while self.state_['position'] is None:
+            if self.reset:
+                return (None, None)
+            if counter_problem > 20:
+                rospy.logwarn(
+                    "waiting for pos to be available {}/{}".format(counter_problem/10, 20))
+            time.sleep(0.01)
+            counter_problem += 1
+            if counter_problem > 200:
+                raise Exception('Probable shared memory issue happend')
+
+        return self.state_['position']
+
+    def get_laser_image(self):
+        return np.expand_dims(self.scan_image, axis=2)
+
+
+>>>>>>> MCTS
 class GazeborosEnv(gym.Env):
 
     def __init__(self, is_evaluation=False):
@@ -521,6 +830,7 @@ class GazeborosEnv(gym.Env):
         self.use_path = True
         self.use_jackal = True
         self.lock = _thread.allocate_lock()
+<<<<<<< HEAD
         self.path_follower_test_settings = {0:(0,0, "straight",False), 1:(2,0, "right", False), 2:(3,0, "left", False),\
                 3:(1,4, "straight_Behind", False), 4:(2,3, "right_behind", False), 5:(3,3, "left_behind", False), 6:(7,2, "traj_1", True, True),\
                 7:(7, 12, "traj_2", True, True), 8:(7, 43, "traj_3", True),\
@@ -528,11 +838,24 @@ class GazeborosEnv(gym.Env):
                 11:(3,1, "left_left", False), 12:(3,2, "left_right", False)\
                 }
         #self.path_follower_test_settings = {0:(7, 43, "traj_3", True)#(7,2, "traj_1", True, True), 1:(7, 12, "traj_2", True, True)}
+=======
+        self.path_follower_test_settings = {0: (0, 0, "straight", False), 1: (2, 0, "right", False), 2: (3, 0, "left", False),
+                                            3: (1, 4, "straight_Behind", False), 4: (2, 3, "right_behind", False), 5: (3, 3, "left_behind", False), 6: (7, 2, "traj_1", True, True),
+                                            7: (7, 12, "traj_2", True, True), 8: (7, 43, "traj_3", True),
+                                            9: (2, 1, "right_left", False), 10: (2, 2, "right_right", False),
+                                            11: (3, 1, "left_left", False), 12: (3, 2, "left_right", False)
+                                            }
+        # self.path_follower_test_settings = {0:(7, 43, "traj_3", True)#(7,2, "traj_1", True, True), 1:(7, 12, "traj_2", True, True)}
+>>>>>>> MCTS
 
         self.is_testing = EnvConfig.USE_TESTING
         self.small_window_size = False
         self.use_predifined_mode_person = True
+<<<<<<< HEAD
         self.use_goal = True
+=======
+        self.use_goal = False
+>>>>>>> MCTS
         self.use_orientation_in_observation = True
 
         self.collision_distance = 0.3
@@ -545,12 +868,28 @@ class GazeborosEnv(gym.Env):
         self.use_obstacles = EnvConfig.USE_OBSTACLES
         self.obstacle_mode = EnvConfig.OBSTACLE_MODE
         self.obstacle_names = []
+<<<<<<< HEAD
         
         self.person_scan = [1000.0 for i in range(EnvConfig.SCAN_REDUCTION_SIZE)]
+=======
+
+        self.person_scan = [1000.0 for i in range(
+            EnvConfig.SCAN_REDUCTION_SIZE)]
+>>>>>>> MCTS
         self.person_use_move_base = EnvConfig.PERSON_USE_MB
         self.person_mode = 0
         self.position_thread = None
 
+<<<<<<< HEAD
+=======
+        self.eval_x = -4
+        self.eval_y = -4
+        self.eval_orientation = 0
+
+        self.robot_eval_x = -1
+        self.robot_eval_y = -1
+
+>>>>>>> MCTS
         self.path_follower_current_setting_idx = 0
         self.use_supervise_action = False
         self.mode_person = 0
@@ -572,12 +911,18 @@ class GazeborosEnv(gym.Env):
 
         # being use for observation visualization
         self.center_pos_ = (0, 0)
+<<<<<<< HEAD
         self.colors_visualization = cv.cvtColor(cv.applyColorMap(np.arange(0, 255, dtype=np.uint8), cv.COLORMAP_WINTER), cv.COLOR_BGR2RGB).reshape(255,3).tolist()
+=======
+        self.colors_visualization = cv.cvtColor(cv.applyColorMap(np.arange(
+            0, 255, dtype=np.uint8), cv.COLORMAP_WINTER), cv.COLOR_BGR2RGB).reshape(255, 3).tolist()
+>>>>>>> MCTS
         self.color_index = 0
         self.first_call_observation = True
 
         self.test_simulation_ = False
 
+<<<<<<< HEAD
         observation_dimensions = 46
         if self.use_orientation_in_observation:
             observation_dimensions += 1
@@ -602,6 +947,26 @@ class GazeborosEnv(gym.Env):
            self.max_numb_steps = 80
         elif self.is_use_test_setting:
            self.max_numb_steps = 100
+=======
+        self.person_scan = [1000.0 for i in range(
+            EnvConfig.SCAN_REDUCTION_SIZE)]
+        self.person_use_move_base = EnvConfig.PERSON_USE_MB
+        self.person_mode = 0
+        self.position_thread = None
+
+        self.eval_x = -4
+        self.eval_y = -4
+        self.eval_orientation = 0
+
+        self.robot_eval_x = -1
+        self.robot_eval_y = -1
+        self.min_distance = 1
+        self.max_distance = 2.5
+        if self.test_simulation_ or self.is_evaluation_:
+            self.max_numb_steps = 80
+        elif self.is_use_test_setting:
+            self.max_numb_steps = 100
+>>>>>>> MCTS
         else:
             self.max_numb_steps = 80
         self.reward_range = [-1, 1]
@@ -611,10 +976,17 @@ class GazeborosEnv(gym.Env):
                 self.reachabilit_value = pickle.load(f)
 
     def get_person_pos(self):
+<<<<<<< HEAD
         theta = self.person.get_orientation()
         xy = self.person.get_pos()
         return [xy[0], xy[1], theta]
     
+=======
+        xy = self.person.get_pos()  # state_['position']
+        theta = self.person.get_orientation()
+        return [xy[0], xy[1], theta]
+
+>>>>>>> MCTS
     def get_system_velocities(self):
         robot_state = self.robot.get_state()
         person_state = self.person.get_state()
@@ -626,39 +998,273 @@ class GazeborosEnv(gym.Env):
         person_lin_velocity = person_state["velocity"][0]
         person_angular_velocity = person_state["velocity"][1]
 
+<<<<<<< HEAD
         x_distance_between = person_state["position"][0] - robot_state["position"][0]
         y_distance_between = person_state["position"][1] - robot_state["position"][1]
 
         dx_dt = -person_lin_velocity + robot_lin_velocity * math.cos(robot_orientation) + person_angular_velocity * y_distance_between
         dy_dt = robot_lin_velocity * math.sin(robot_orientation) - person_angular_velocity * x_distance_between
+=======
+        x_distance_between = person_state["position"][0] - \
+            robot_state["position"][0]
+        y_distance_between = person_state["position"][1] - \
+            robot_state["position"][1]
+
+        dx_dt = -person_lin_velocity + robot_lin_velocity * \
+            math.cos(robot_orientation) + \
+            person_angular_velocity * y_distance_between
+        dy_dt = robot_lin_velocity * \
+            math.sin(robot_orientation) - \
+            person_angular_velocity * x_distance_between
+>>>>>>> MCTS
         da_dt = robot_angular_velocity - person_angular_velocity
 
         return (dx_dt, dy_dt, da_dt)
 
     def get_test_path_number(self):
+<<<<<<< HEAD
         rospy.loginfo("current path idx: {}".format(self.path_follower_current_setting_idx))
+=======
+        # rospy.loginfo("current path idx: {}".format(self.path_follower_current_setting_idx)) # TODO_changed
+>>>>>>> MCTS
         return self.path_follower_test_settings[self.path_follower_current_setting_idx][2]
 
     def use_test_setting(self):
         self.is_use_test_setting = True
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> MCTS
     def set_person_mode(self, setting):
         self.person_mode = setting
 
     def set_use_obstacles(self, setting):
         self.use_obstacles = setting
 
+<<<<<<< HEAD
+=======
+    def build_discrete_action_space(self, numb_tickers=8, radai_0=0.4, radai_1=0.6, radai_2=0.8):
+
+        # while self.queue_of_x.empty(): # wont exit
+        #     sleep(5)
+        #     print("sleeping", list(self.queue_of_x.queue), self.path_sub)
+
+        sleepy_time = 0.5
+        # state = {} # does not work...
+        # state["velocity"] = (0.5, 0) # linear_vel, angular_vel
+        # state["position"] = (5, 5)
+        # state["orientation"] = 0
+        # self.robot.set_state(state)
+
+        orientation = self.robot.get_orientation()
+
+        self.queue_of_x = queue.Queue()
+        self.queue_of_y = queue.Queue()
+        self.queue_of_theta = queue.Queue()
+        master_list_x = []
+        master_list_y = []
+        master_list_theta = []
+        phase_shift = 2*np.pi/numb_tickers
+        radai = [radai_0, radai_1, radai_2]
+
+        plt.scatter(0, 0, color='black')
+        self.set_goal(orientation=orientation, x=0, y=0)
+        sleep(sleepy_time)
+        master_list_x.append(list(self.queue_of_x.queue))
+        master_list_y.append(list(self.queue_of_y.queue))
+        master_list_theta.append(list(self.queue_of_theta.queue))
+        
+        self.set_goal(orientation=orientation, x=0, y=0)
+        sleep(sleepy_time)
+        master_list_x.append(list(self.queue_of_x.queue))
+        master_list_y.append(list(self.queue_of_y.queue))
+        master_list_theta.append(list(self.queue_of_theta.queue))
+
+        # init_pos = self.robot.state_['position']
+        # rospy.loginfo(f"robot's x and y are:\n\t{init_pos[0]}\n\t{init_pos[1]}\n")
+        # x = np.array(list(self.queue_of_x.queue)) # init_pos[0] -
+        # print(f'x and y are:\n\t{x}\n\t{y}\n')
+
+        counter = 0
+        for radius in radai:
+            for tick in range(numb_tickers):
+                plt.scatter(radius*np.cos(tick*phase_shift),
+                            radius*np.sin(tick*phase_shift), color='black')
+
+                self.queue_of_x = queue.Queue()
+                self.queue_of_y = queue.Queue()
+                self.queue_of_theta = queue.Queue()
+                self.set_goal(orientation=orientation, x=radius *
+                              np.cos(tick*phase_shift), y=radius*np.sin(tick*phase_shift))
+                sleep(sleepy_time)
+                master_list_x.append(list(self.queue_of_x.queue))
+                master_list_y.append(list(self.queue_of_y.queue))
+                master_list_theta.append(list(self.queue_of_theta.queue))
+                # print(f'[{counter}] x and y are:\n\t{x}\n\t{y}\n')
+
+                counter += 1
+        # plt.show()
+
+        # for i in range(len(master_list_x)):
+        #     plt.plot(master_list_x[i], master_list_y[i])
+        # plt.show()
+
+        # for i in range(len(master_list_w)):
+        #     for ii in range(len(master_list_w[0])):
+        #         # w, x, y, z
+        #         print(f'w & z {master_list_w[i][ii]} | {master_list_z[i][ii]}')
+        #         euler = Quaternion(master_list_w[i][ii], 0.0,
+        #                         0.0, master_list_z[i][ii]).to_euler()
+        #         print(f'euler {euler} | {type(euler)}')
+        master_list_x, master_list_y, master_list_theta = master_list_x[1:], master_list_y[1:], master_list_theta[1:]
+        offset = [master_list_x[0][0], master_list_y[0][0]]
+        for i in range(len(master_list_x)):
+            for ii in range(len(master_list_x[i])):
+                master_list_x[i][ii] -=offset[0]
+                master_list_y[i][ii] -=offset[1]
+
+        x = zip(master_list_x, master_list_y, master_list_theta)
+        x = tuple(x)
+        # for i in range(len(trajectories)):
+        #     for ii in range(len(trajectories[i])):
+        #         trajectories[i][ii] = np.array(trajectories[i][ii])
+
+        with open('discrete_action_space.pickle', 'wb') as handle:
+            pickle.dump(x, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # with open('discrete_action_space.pickle', 'rb') as handle:
+        #     x = pickle.load(handle)
+        return x
+
+    # A utility function for build_discrete_action_space()
+
+    def set_goal(self, orientation=1, x=10, y=10, z=0):  # TODO_added
+        """rostopic pub /move_base_simple/goal_0 geometry_msgs/PoseStamped  "header:
+            seq: 0
+            stamp:
+                secs: 0 
+                nsecs: 0
+            frame_id: 'tb3_0/base_link'
+            pose:
+                position:
+                    x: 10.0
+                    y: 10.0
+                    z: 0.0
+                orientation:
+                    x: 0.0
+                    y: 0.0
+                    z: 0.0
+                    w: 1.0"
+
+            I might need to use /base_link as the frame 
+        """
+        # TODO is this even correct?
+        # array = [x, y]
+        array, orientation = self.get_global_position_orientation([x, y], orientation, self.robot)
+        print(f'Setting goals: (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f}')
+        x, y = array[0], array[1]
+
+        # Set goal
+        self.goal_target = rospy.Publisher(
+            '/move_base_simple/goal_0', PoseStamped, queue_size=1)
+
+        obj = PoseStamped()
+        obj.header.frame_id = 'map'  # 'tb3_0/base_link'
+        obj.header.stamp = rospy.Time.now()
+        obj.pose.position.x = x
+        obj.pose.position.y = y
+        obj.pose.position.z = z
+
+        quaternion_rotation = Quaternion.from_euler(0, orientation, 0)
+        obj.pose.orientation.x = quaternion_rotation[3]
+        obj.pose.orientation.y = quaternion_rotation[1]
+        obj.pose.orientation.z = quaternion_rotation[2]
+        obj.pose.orientation.w = quaternion_rotation[0]
+        # rospy.loginfo(f"PoseStamped() is  {obj}")
+
+        self.goal_target.publish(obj)
+        self.plot_toggle = True
+
+        # How to get to our goal
+        self.path_sub = rospy.Subscriber(
+            "/move_base_node_0/TebLocalPlannerROS/local_plan", Path, self.path_cb)
+
+        # not sure if this is pointless, but it's not too inefficient for concerne.
+        # sleep(0.5)
+        # if not self.queue_of_x.empty():
+        #     init_pos = self.robot.state_['position']
+        #     print(f"init robot position {init_pos[0]},{init_pos[1]}")
+        #     x = round(init_pos[0], 2) - np.array(self.queue_of_x.queue)
+        #     y = round(init_pos[1], 2) - np.array(self.queue_of_y.queue)
+        #     print(f'(x,y) is\n\t{x},\n\t{y}')
+        # plt.plot(x, y)
+        # plt.show()
+
+    # a callback for set_goal(), when we Subscriber to "local_plan"
+    def path_cb(self, msg):
+        # print(f'msg.poses[0].pose is: \n{msg.poses[0].pose}')
+
+        if self.plot_toggle:  # == 5 TODO maybe not the first, but i think they are all the same. use print below to see
+            self.plot_toggle = False
+            for pos in msg.poses:
+                scaler = 1  # self.robot.max_rel_pos_range
+                x, y = pos.pose.position.x, pos.pose.position.y
+                # z, w = pos.pose.orientation.z, pos.pose.orientation.w
+                # array = self.get_global_position([x*scaler, y*scaler], self.robot) # TODO add orientation
+                # array = self.get_global_position(self.denormlize([x, y]), self.robot)
+                # print(f' (x,y) was {x:.2f}, {y:.2f} | it is now {array[0]:.2f}, {array[1]:.2f} ')
+                
+                euler = Quaternion(pos.pose.orientation.w, pos.pose.orientation.x,
+                                   pos.pose.orientation.y, pos.pose.orientation.z).to_euler()
+                # print(f'euler {euler} | {type(euler)}') # only the 3rd value in non-zero
+
+                array, orientation = self.get_global_position_orientation([x*scaler, y*scaler], euler[2], self.robot)
+                
+                self.queue_of_x.put(array[0])
+                self.queue_of_y.put(array[1])
+                self.queue_of_theta.put(orientation)
+            print(f'done loading queues')
+
+            # See path to final position
+            # self.goal_target = rospy.Publisher('/move_base_simple/goal_0', PoseStamped, queue_size=1)
+            # obj = PoseStamped()
+            # obj.header.frame_id = 'map'
+            # obj.header.stamp = rospy.Time.now()
+            # obj.pose.position.x = x
+            # obj.pose.position.y = y
+            # obj.pose.position.z = 0
+            # quaternion_rotation = Quaternion.from_euler(0, 1, 0)
+            # obj.pose.orientation.x = quaternion_rotation[3]
+            # obj.pose.orientation.y = quaternion_rotation[1]
+            # obj.pose.orientation.z = quaternion_rotation[2]
+            # obj.pose.orientation.w = quaternion_rotation[0]
+            # self.goal_target.publish(obj)
+            # sleep(0.5)
+
+>>>>>>> MCTS
     def set_agent(self, agent_num):
         try:
             self.node = rospy.init_node('gym_gazeboros_{}'.format(agent_num))
         except Exception as e:
             rospy.logerr("probably already init in another node {}".format(e))
         rospy.wait_for_service('/gazebo/set_model_state')
+<<<<<<< HEAD
         self.set_model_state_sp = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
         self.agent_num = agent_num
         self.obstacle_pub_ =  rospy.Publisher('/move_base_node_tb3_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
         self.person_obstacle_pub_ =  rospy.Publisher('/move_base_node_person_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
+=======
+        self.set_model_state_sp = rospy.ServiceProxy(
+            '/gazebo/set_model_state', SetModelState)
+        date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+        self.agent_num = agent_num
+        # note: this is the pose for human 
+        self.obstacle_pub_ = rospy.Publisher(
+            '/move_base_node_tb3_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
+        self.person_obstacle_pub_ = rospy.Publisher(
+            '/move_base_node_person_{}/TebLocalPlannerROS/obstacles'.format(self.agent_num), ObstacleArrayMsg, queue_size=1)
+>>>>>>> MCTS
         self.create_robots()
 
         self.path = {}
@@ -672,12 +1278,25 @@ class GazeborosEnv(gym.Env):
                     for angle in [x for x in range(0, 360, 10)]:
                         for angle_robot_person in [x for x in range(0, 360, 90)]:
                             path_angle = path.copy()
+<<<<<<< HEAD
                             angle_from_person = np.deg2rad(angle) + angle_person
                             angle_person_robot = np.deg2rad(angle_robot_person) + angle_person
                             path_angle['start_robot']['pos'] = (path_angle['start_person']['pos'][0] + math.cos(angle_from_person)*2, path_angle['start_person']['pos'][1] + math.sin(angle_from_person)*2)
 
                             path_angle['start_robot']['orientation'] = angle_person_robot
                             path_angle['name'] = path['name'] + " " + str(angle) +" " + str(angle_robot_person)
+=======
+                            angle_from_person = np.deg2rad(
+                                angle) + angle_person
+                            angle_person_robot = np.deg2rad(
+                                angle_robot_person) + angle_person
+                            path_angle['start_robot']['pos'] = (path_angle['start_person']['pos'][0] + math.cos(
+                                angle_from_person)*2, path_angle['start_person']['pos'][1] + math.sin(angle_from_person)*2)
+
+                            path_angle['start_robot']['orientation'] = angle_person_robot
+                            path_angle['name'] = path['name'] + " " + \
+                                str(angle) + " " + str(angle_robot_person)
+>>>>>>> MCTS
                             self.paths.append(path_angle)
 
                 self.path_idx = -1
@@ -688,13 +1307,24 @@ class GazeborosEnv(gym.Env):
         self.agent_num = agent_num
 
         self.state_cb_prev_time = None
+<<<<<<< HEAD
         self.model_states_sub = rospy.Subscriber("/gazebo/model_states", ModelStates, self.model_states_cb)
         self.scan_sub = rospy.Subscriber("/person_{}/scan".format(self.agent_num), LaserScan, self.scan_cb)
+=======
+        self.model_states_sub = rospy.Subscriber(
+            "/gazebo/model_states", ModelStates, self.model_states_cb)
+        # self.scan_sub = rospy.Subscriber(
+        #     "/person_{}/scan".format(self.agent_num), LaserScan, self.scan_cb)
+>>>>>>> MCTS
 
         if EnvConfig.INIT_SIM_ON_AGENT:
             with self.lock:
                 self.init_simulator()
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> MCTS
     def scan_cb(self, msg):
         reduced_size = EnvConfig.SCAN_REDUCTION_SIZE
         large_n = 1000.0
@@ -711,7 +1341,11 @@ class GazeborosEnv(gym.Env):
             if r > 0 and r < 20:
                 avg += r
                 a_size += 1
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> MCTS
             count += 1
             if count == div:
                 if a_size != 0:
@@ -724,7 +1358,10 @@ class GazeborosEnv(gym.Env):
                 count = 0
                 a_size = 0
                 avg = 0
+<<<<<<< HEAD
                 
+=======
+>>>>>>> MCTS
 
         self.person_scan = reduced_scan
         pass
@@ -751,10 +1388,18 @@ class GazeborosEnv(gym.Env):
         obstacle_msg.orientation.w = pose.orientation.w
         obstacle_msg.velocities.twist.linear.x = 0
         obstacle_msg.velocities.twist.angular.z = 0
+<<<<<<< HEAD
         
         return obstacle_msg
 
     def model_states_cb(self, states_msg):
+=======
+
+        return obstacle_msg
+
+    def model_states_cb(self, states_msg):
+        """sets the new state"""
+>>>>>>> MCTS
 
         # Grab Obstacle Names for Agent
         if not self.obstacle_names:
@@ -767,11 +1412,21 @@ class GazeborosEnv(gym.Env):
 
         obstacle_msg_array = ObstacleArrayMsg()
         obstacle_msg_array.header.stamp = rospy.Time.now()
+<<<<<<< HEAD
         obstacle_msg_array.header.frame_id = "tb3_{}/odom".format(self.agent_num)
 
         person_obs_msg_array = ObstacleArrayMsg()
         person_obs_msg_array.header.stamp = rospy.Time.now()
         person_obs_msg_array.header.frame_id = "person_{}/odom".format(self.agent_num)
+=======
+        obstacle_msg_array.header.frame_id = "tb3_{}/odom".format(
+            self.agent_num)
+
+        person_obs_msg_array = ObstacleArrayMsg()
+        person_obs_msg_array.header.stamp = rospy.Time.now()
+        person_obs_msg_array.header.frame_id = "person_{}/odom".format(
+            self.agent_num)
+>>>>>>> MCTS
 
         for model_idx in range(len(states_msg.name)):
             found = False
@@ -781,6 +1436,7 @@ class GazeborosEnv(gym.Env):
                     break
                 elif "obstacle" in states_msg.name[model_idx] and EnvConfig.SEND_TEB_OBSTACLES:
                     obstacle_msg_array.obstacles.append(
+<<<<<<< HEAD
                         self.create_obstacle_msg(
                             states_msg.name[model_idx], states_msg.pose[model_idx]
                         )
@@ -795,6 +1451,20 @@ class GazeborosEnv(gym.Env):
 
             pos = states_msg.pose[model_idx]
             euler = Quaternion(w=pos.orientation.w, x=pos.orientation.x, y=pos.orientation.y, z=pos.orientation.z).to_euler()
+=======
+                            self.create_obstacle_msg(states_msg.name[model_idx],
+                            states_msg.pose[model_idx]))
+
+                    person_obs_msg_array.obstacles.append(self.create_obstacle_msg(
+                            states_msg.name[model_idx], states_msg.pose[model_idx]))  
+
+            if not found:
+                continue
+
+            pos = states_msg.pose[model_idx]
+            euler = Quaternion(w=pos.orientation.w, x=pos.orientation.x,
+                               y=pos.orientation.y, z=pos.orientation.z).to_euler()
+>>>>>>> MCTS
 
             if EnvConfig.PERSON_USE_MB:
                 orientation = euler[2]
@@ -803,8 +1473,17 @@ class GazeborosEnv(gym.Env):
                 orientation = euler[0]
 
             fall_angle = np.deg2rad(90)
+<<<<<<< HEAD
             if abs(abs(euler[1]) - fall_angle)< 0.1 or abs(abs(euler[2]) - fall_angle)<0.1:
                 self.fallen = True
+=======
+            if abs(abs(euler[1]) - fall_angle) < 0.1 or abs(abs(euler[2]) - fall_angle) < 0.1:
+                self.fallen = True
+                # if random.random() >= 0.8: # TODO_changed
+                #     self.fallen = True
+                # else:
+                #     rospy.loginfo(f"let's pretend the Robot didn't just fall...")
+>>>>>>> MCTS
             # get velocity
             twist = states_msg.twist[model_idx]
             linear_vel = twist.linear.x
@@ -815,13 +1494,22 @@ class GazeborosEnv(gym.Env):
             state["velocity"] = (linear_vel, angular_vel)
             state["position"] = (pos_x, pos_y)
             state["orientation"] = orientation
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> MCTS
             robot.set_state(state)
             if self.use_movebase:
                 obstacle_msg = ObstacleMsg()
                 obstacle_msg.id = 0
+<<<<<<< HEAD
                 for x in range (5):
                     for y in range (5):
+=======
+                for x in range(5):
+                    for y in range(5):
+>>>>>>> MCTS
                         point = Point32()
                         point.x = pos.position.x + (x-2)*0.1
                         point.y = pos.position.y + (y-2)*0.1
@@ -833,7 +1521,11 @@ class GazeborosEnv(gym.Env):
                 obstacle_msg.orientation.w = pos.orientation.w
                 obstacle_msg.velocities.twist.linear.x = twist.linear.x
                 obstacle_msg.velocities.twist.angular.z = twist.linear.z
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> MCTS
                 if robot.name == self.person.name:
                     obstacle_msg.header = obstacle_msg_array.header
                     obstacle_msg_array.obstacles.append(obstacle_msg)
@@ -844,6 +1536,7 @@ class GazeborosEnv(gym.Env):
         self.person_obstacle_pub_.publish(person_obs_msg_array)
 
     def create_robots(self):
+<<<<<<< HEAD
 
         self.person = Robot('person_{}'.format(self.agent_num),
                             max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing, use_goal=self.use_goal, use_movebase=self.use_movebase)
@@ -856,6 +1549,42 @@ class GazeborosEnv(gym.Env):
     def find_random_point_in_circle(self, radious, min_distance, around_point):
         max_r = 2
         r = (radious - min_distance) * math.sqrt(random.random()) + min_distance
+=======
+        
+        self.robot = Robot('tb3_{}'.format(self.agent_num),
+                           max_angular_speed=1.8, max_linear_speed=0.8, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        
+        relative = self.robot
+        self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+                                     max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+
+
+        self.person = Robot('person_{}'.format(self.agent_num),
+                            max_angular_speed=1, max_linear_speed=.6, relative=relative, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+        self.person_simulated = Robot('person_simulated_{}'.format(self.agent_num),
+                                      max_angular_speed=1, max_linear_speed=.6, relative=relative, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+
+
+        # self.person = Robot('person_{}'.format(self.agent_num),
+        #                     max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+        # self.person_simulated = Robot('person_simulated_{}'.format(self.agent_num),
+        #                               max_angular_speed=1, max_linear_speed=.6, agent_num=self.agent_num, window_size=self.window_size, is_testing=self.is_testing)
+
+        # relative = self.robot
+        # self.robot = Robot('tb3_{}'.format(self.agent_num),
+        #                    max_angular_speed=1.8, max_linear_speed=0.8, relative=relative, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+        # # TODO is relative correct? 
+        # self.robot_simulated = Robot('tb3_simulated_{}'.format(self.agent_num),
+        #                              max_angular_speed=1.8, max_linear_speed=0.8, relative=self.robot, agent_num=self.agent_num, use_goal=self.use_goal, use_movebase=self.use_movebase, use_jackal=self.use_jackal, window_size=self.window_size, is_testing=self.is_testing)
+
+    def find_random_point_in_circle(self, radious, min_distance, around_point):
+        max_r = 2
+        r = (radious - min_distance) * \
+            math.sqrt(random.random()) + min_distance
+>>>>>>> MCTS
         theta = random.random() * 2 * math.pi
         x = around_point[0] + r * math.cos(theta)
         y = around_point[1] + r * math.sin(theta)
@@ -874,7 +1603,11 @@ class GazeborosEnv(gym.Env):
             self.mode_person = 6
         else:
             #self.mode_person = 7
+<<<<<<< HEAD
             if random.random()>0.5:
+=======
+            if random.random() > 0.5:
+>>>>>>> MCTS
                 self.mode_person = 7
             else:
                 self.mode_person = random.randint(0, 6)
@@ -886,6 +1619,7 @@ class GazeborosEnv(gym.Env):
             idx_start = self.path_follower_test_settings[self.path_follower_current_setting_idx][1]
         else:
             idx_start = random.randint(0, len(self.path["points"]) - 20)
+<<<<<<< HEAD
         
         self.current_path_idx = idx_start
 
@@ -901,23 +1635,77 @@ class GazeborosEnv(gym.Env):
             init_pos_robot = {"pos": random_pos_robot, "orientation":random.uniform(0, math.pi)}
             
             return init_pos_robot, init_pos_person
+=======
+        self.current_path_idx = idx_start
+        if not self.is_use_test_setting and self.use_reverse and random.random() > 0.5:
+            self.path["points"].reverse()
+        if self.person_use_move_base:
+            if EnvConfig.EVALUATION_MODE:
+                if self.eval_x > 4:
+                    self.eval_x = -4
+                    self.eval_y = -4
+                    self.eval_orientation = 0
+
+                    self.robot_eval_x = -1
+                    self.robot_eval_y = -1
+
+                if self.robot_eval_x > 1:
+                    self.robot_eval_x = -1
+                    self.robot_eval_y = 1
+
+                init_pos_person = {"pos": (self.eval_x, self.eval_y), "orientation": self.eval_orientation}
+
+                init_pos_robot = {"pos": (self.robot_eval_x, self.robot_eval_y), "orientation": self.eval_orientation}
+
+                self.eval_x += 1
+                self.eval_y += 1
+                self.eval_orientation += math.pi/4
+
+                self.robot_eval_x += 2
+                self.robot_eval_y += 2
+
+                return init_pos_robot, init_pos_person
+            else:
+                x = random.uniform(-3, 3)
+                y = random.uniform(-3, 3)
+                init_pos_person = {
+                    "pos": (x, y), "orientation": random.uniform(0, math.pi)}
+                random_pos_robot = self.find_random_point_in_circle(
+                    1.5, 2.5, init_pos_person["pos"])
+
+                init_pos_robot = {"pos": random_pos_robot,
+                                  "orientation": random.uniform(0, math.pi)}
+
+                return init_pos_robot, init_pos_person
+>>>>>>> MCTS
 
         if self.is_evaluation_:
             init_pos_person = self.path["start_person"]
             init_pos_robot = self.path["start_robot"]
         elif self.is_use_test_setting and not self.path_follower_test_settings[self.path_follower_current_setting_idx][3]:
+<<<<<<< HEAD
             init_pos_person = {"pos": (0, 0), "orientation":0}
+=======
+            init_pos_person = {"pos": (0, 0), "orientation": 0}
+>>>>>>> MCTS
             mode = self.path_follower_test_settings[self.path_follower_current_setting_idx][1]
             if mode == 0:
                 orinetation_person_rob = 0
             elif mode == 1:
+<<<<<<< HEAD
                 orinetation_person_rob = -math.pi /4.
             elif mode == 2:
                 orinetation_person_rob = math.pi /4.
+=======
+                orinetation_person_rob = -math.pi / 4.
+            elif mode == 2:
+                orinetation_person_rob = math.pi / 4.
+>>>>>>> MCTS
             elif mode == 3:
                 orinetation_person_rob = -math.pi
             else:
                 orinetation_person_rob = math.pi/8*7
+<<<<<<< HEAD
             pos_robot = (1.5*math.cos(orinetation_person_rob), 1.5*math.sin(orinetation_person_rob))
             init_pos_robot = {"pos": pos_robot, "orientation":0}
 
@@ -937,6 +1725,35 @@ class GazeborosEnv(gym.Env):
                 orinetation_person_rob = math.pi/2.2
                 pos_robot = (self.path["points"][idx_start][0] + 2*math.cos(orinetation_person_rob+init_pos_person["orientation"]), self.path["points"][idx_start][1] + 2*math.sin(orinetation_person_rob+init_pos_person["orientation"]))
                 init_pos_robot = {"pos": pos_robot, "orientation":self.calculate_angle_using_path(idx_start+5)}
+=======
+            pos_robot = (1.5*math.cos(orinetation_person_rob),
+                         1.5*math.sin(orinetation_person_rob))
+            init_pos_robot = {"pos": pos_robot, "orientation": 0}
+
+        elif not self.use_path:
+            init_pos_person = {
+                "pos": (0, 0), "orientation": random.random()*2*math.pi - math.pi}
+            ahead_person = (init_pos_person['pos'][0] + math.cos(init_pos_person["orientation"])
+                            * 2, init_pos_person['pos'][1] + math.sin(init_pos_person["orientation"]) * 2)
+            random_pos_robot = self.find_random_point_in_circle(
+                1.5, 2.5, init_pos_person["pos"])
+            init_pos_robot = {"pos": random_pos_robot,
+                              "orientation": init_pos_person["orientation"]}  # random.random()*2*math.pi - math.pi}#self.calculate_angle_using_path(idx_start)}
+        elif self.use_random_around_person_:
+            init_pos_person = {"pos": self.path["points"][idx_start],
+                               "orientation": self.calculate_angle_using_path(idx_start)}
+            init_pos_robot = {"pos": self.find_random_point_in_circle(1.5, 1, self.path["points"][idx_start]),
+                              "orientation": random.random()*2*math.pi - math.pi}  # self.calculate_angle_using_path(idx_start)}
+        else:
+            init_pos_person = {"pos": self.path["points"][idx_start],
+                               "orientation": self.calculate_angle_using_path(idx_start)}
+            if self.is_use_test_setting and len(self.path_follower_test_settings[self.path_follower_current_setting_idx]) > 4 and self.path_follower_test_settings[self.path_follower_current_setting_idx][4]:
+                orinetation_person_rob = math.pi/2.2
+                pos_robot = (self.path["points"][idx_start][0] + 2*math.cos(orinetation_person_rob+init_pos_person["orientation"]),
+                             self.path["points"][idx_start][1] + 2*math.sin(orinetation_person_rob+init_pos_person["orientation"]))
+                init_pos_robot = {
+                    "pos": pos_robot, "orientation": self.calculate_angle_using_path(idx_start+5)}
+>>>>>>> MCTS
             else:
 
                 idx_robot = idx_start + 1
@@ -944,26 +1761,46 @@ class GazeborosEnv(gym.Env):
                                   self.path["points"][idx_robot][0] - self.path["points"][idx_start][0]) < 1.6):
                     idx_robot += 1
 
+<<<<<<< HEAD
                 init_pos_robot = {"pos": self.path["points"][idx_robot],\
                                   "orientation": self.calculate_angle_using_path(idx_robot)}
                 if not self.is_testing:
                     init_pos_robot["pos"] = (init_pos_robot["pos"][0]+ random.random()-0.5, \
                             init_pos_robot["pos"][1]+ random.random()-0.5)
                     init_pos_robot["orientation"] = GazeborosEnv.wrap_pi_to_pi(init_pos_robot["orientation"] + random.random()-0.5)
+=======
+                init_pos_robot = {"pos": self.path["points"][idx_robot],
+                                  "orientation": self.calculate_angle_using_path(idx_robot)}
+                if not self.is_testing:
+                    init_pos_robot["pos"] = (init_pos_robot["pos"][0] + random.random()-0.5,
+                                             init_pos_robot["pos"][1] + random.random()-0.5)
+                    init_pos_robot["orientation"] = GazeborosEnv.wrap_pi_to_pi(
+                        init_pos_robot["orientation"] + random.random()-0.5)
+>>>>>>> MCTS
 
         return init_pos_robot, init_pos_person
 
     def set_marker_pose(self, xy):
         pose = {"pos": (xy[0], xy[1]), "orientation": 0}
+<<<<<<< HEAD
         self.set_pos("marker",pose)        
+=======
+        self.set_pos("marker", pose)
+>>>>>>> MCTS
 
     def set_pos(self, name, pose):
         set_model_msg = ModelState()
         set_model_msg.model_name = name
+<<<<<<< HEAD
         self.prev_action = (0,0)
         quaternion_rotation = Quaternion.from_euler(0, pose["orientation"], 0)
 
 
+=======
+        self.prev_action = (0, 0)
+        quaternion_rotation = Quaternion.from_euler(0, pose["orientation"], 0)
+
+>>>>>>> MCTS
         set_model_msg.pose.orientation.x = quaternion_rotation[3]
         set_model_msg.pose.orientation.y = quaternion_rotation[1]
         set_model_msg.pose.orientation.z = quaternion_rotation[2]
@@ -982,8 +1819,13 @@ class GazeborosEnv(gym.Env):
 
     def get_obstacle_init_pos(self, init_pos_robot, init_pos_person):
         num_obstacles = len(self.obstacle_names)
+<<<<<<< HEAD
         
         out_of_the_way_pose = {"pos": (15,15), "orientation":0}
+=======
+
+        out_of_the_way_pose = {"pos": (15, 15), "orientation": 0}
+>>>>>>> MCTS
 
         if not self.use_obstacles:
             return [out_of_the_way_pose for i in range(num_obstacles)]
@@ -1004,9 +1846,17 @@ class GazeborosEnv(gym.Env):
             num_obs_to_place = num_obstacles + 1
             while x_buffer_space < 0 and y_buffer_space < 0:
                 num_obs_to_place -= 1
+<<<<<<< HEAD
                 x_buffer_space = x_range - (EnvConfig.OBSTACLE_SIZE * num_obs_to_place)
                 y_buffer_space = y_range - ((EnvConfig.OBSTACLE_SIZE * num_obs_to_place))
             
+=======
+                x_buffer_space = x_range - \
+                    (EnvConfig.OBSTACLE_SIZE * num_obs_to_place)
+                y_buffer_space = y_range - \
+                    ((EnvConfig.OBSTACLE_SIZE * num_obs_to_place))
+
+>>>>>>> MCTS
             if num_obs_to_place == 0:
                 # No space for obstacles so put them away
                 rospy.logwarn("Not enough space for obstacles between robots.")
@@ -1019,7 +1869,11 @@ class GazeborosEnv(gym.Env):
                 base_x = init_pos_robot["pos"][0]
             else:
                 base_x = init_pos_person["pos"][0]
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> MCTS
             if init_pos_robot["pos"][1] < init_pos_person["pos"][1]:
                 base_y = init_pos_robot["pos"][1]
             else:
@@ -1030,6 +1884,7 @@ class GazeborosEnv(gym.Env):
             for i in range(num_obs_to_place):
                 base_x += x_spacing
                 base_y += y_spacing
+<<<<<<< HEAD
                 obstacle_positions.append({"pos": (base_x, base_y), "orientation":0})
             obstacle_positions.extend([out_of_the_way_pose for i in range(num_obstacles - num_obs_to_place)])
 
@@ -1047,6 +1902,54 @@ class GazeborosEnv(gym.Env):
                 random_point = self.prevent_overlap(init_pos_person["pos"], random_point, min_distance_away_from_robot)
 
                 obstacle_positions.append({"pos": random_point, "orientation":0})
+=======
+                obstacle_positions.append(
+                    {"pos": (base_x, base_y), "orientation": 0})
+            obstacle_positions.extend(
+                [out_of_the_way_pose for i in range(num_obstacles - num_obs_to_place)])
+
+            return obstacle_positions
+
+        elif self.obstacle_mode == 1:
+            # Put obstacles randomly within area
+            obstacle_radius = EnvConfig.OBSTACLE_RADIUS_AWAY
+            min_distance_away_from_robot = EnvConfig.OBSTACLE_SIZE * 1.25
+
+            obstacle_positions = []
+            if EnvConfig.EVALUATION_MODE:
+                x_diff = -1
+                y_diff = -1
+                count = 0
+                for obs_idx in range(num_obstacles):
+                    p_xy = init_pos_robot["pos"]
+
+                    point = (p_xy[0] + x_diff*1.25, p_xy[1] + y_diff*1.25)
+                    point = self.prevent_overlap(
+                        init_pos_person["pos"], point, min_distance_away_from_robot)
+                    point = self.prevent_overlap(
+                        init_pos_robot["pos"], point, min_distance_away_from_robot)
+
+                    obstacle_positions.append({"pos": point, "orientation": 0})
+
+                    if count % 2 == 0:
+                        x_diff += 1
+                    else:
+                        y_diff += 1
+                        x_diff -= 0.5
+
+                    count += 1
+
+            else:
+                for obs_idx in range(num_obstacles):
+                    random_point = self.find_random_point_in_circle(
+                        obstacle_radius, min_distance_away_from_robot, init_pos_robot["pos"])
+
+                    random_point = self.prevent_overlap(
+                        init_pos_person["pos"], random_point, min_distance_away_from_robot)
+
+                    obstacle_positions.append(
+                        {"pos": random_point, "orientation": 0})
+>>>>>>> MCTS
             return obstacle_positions
 
     # Prevent point b from overlapping point a
@@ -1058,6 +1961,7 @@ class GazeborosEnv(gym.Env):
             x += min_distance
         if abs(point_b[1] - point_a[1]) < min_distance:
             y += min_distance
+<<<<<<< HEAD
         
         return (x, y)
 
@@ -1069,6 +1973,20 @@ class GazeborosEnv(gym.Env):
     def init_simulator(self):
         self.number_of_steps = 0
         rospy.loginfo("init simulation called")
+=======
+
+        return (x, y)
+
+    def set_obstacle_pos(self, init_pos_robot, init_pos_person):
+        obs_positions = self.get_obstacle_init_pos(init_pos_robot, init_pos_person)
+        for obs_idx in range(len(self.obstacle_names)):
+            self.set_pos(self.obstacle_names[obs_idx], obs_positions[obs_idx])
+
+    def init_simulator(self):
+
+        self.number_of_steps = 0
+        rospy.loginfo("init simulation called") # TODO
+>>>>>>> MCTS
         self.is_pause = True
 
         init_pos_robot, init_pos_person = self.get_init_pos_robot_person()
@@ -1077,27 +1995,48 @@ class GazeborosEnv(gym.Env):
         self.fallen = False
         self.is_max_distance = False
         self.first_call_observation = True
+<<<<<<< HEAD
 
         rospy.loginfo("Waiting for path follower to die")
         if self.position_thread:
             self.position_thread.join()        
         rospy.loginfo("Done waiting")
 
+=======
+        
+        # rospy.loginfo("Waiting for path follower to die")
+        if self.position_thread:
+            self.position_thread.join()
+        # rospy.loginfo("Done waiting")
+
+        self.current_obsevation_image_ = np.zeros([2000, 2000, 3])
+>>>>>>> MCTS
         self.current_obsevation_image_.fill(255)
         if self.use_movebase:
             self.robot.movebase_cancel_goals()
         if self.person_use_move_base:
             self.person.movebase_cancel_goals()
+<<<<<<< HEAD
+=======
+            rospy.sleep(0.5)
+>>>>>>> MCTS
         rospy.sleep(0.5)
         self.person.stop_robot()
         self.robot.stop_robot()
         # if self.use_movebase:
         #     self.prev_action = (0,0, 0)
         # else:
+<<<<<<< HEAD
         self.prev_action = (0,0)
 
         if EnvConfig.TRAIN_HINN:
             init_pos_robot = {"pos": (30,30), "orientation": 0}
+=======
+        self.prev_action = (0, 0)
+        
+        if EnvConfig.TRAIN_HINN:
+            init_pos_robot = {"pos": (30, 30), "orientation": 0}
+>>>>>>> MCTS
 
         # Set positions of robots and obstacles
         self.set_pos(self.robot.name, init_pos_robot)
@@ -1112,12 +2051,21 @@ class GazeborosEnv(gym.Env):
         self.person.update(init_pos_person)
 
         self.path_finished = False
+<<<<<<< HEAD
         
         self.position_thread = threading.Thread(target=self.path_follower, args=(self.current_path_idx, self.robot, init_pos_person,))
         self.position_thread.daemon = True
         self.is_reseting = False
         self.position_thread.start()
 
+=======
+        self.position_thread = threading.Thread(target=self.path_follower, args=(
+            self.current_path_idx, self.robot, init_pos_person,))
+        self.position_thread.daemon = True
+        
+        self.is_reseting = False
+        self.position_thread.start()
+>>>>>>> MCTS
         self.wait_observation_ = 0
 
         self.is_reseting = False
@@ -1125,7 +2073,11 @@ class GazeborosEnv(gym.Env):
         self.person.reset = False
 
         # self.resume_simulator()
+<<<<<<< HEAD
         rospy.loginfo("init simulation finished")
+=======
+        # rospy.loginfo("init simulation finished")
+>>>>>>> MCTS
         self.is_pause = False
 
     def pause(self):
@@ -1134,11 +2086,19 @@ class GazeborosEnv(gym.Env):
         self.robot.pause()
 
     def resume_simulator(self):
+<<<<<<< HEAD
         rospy.loginfo("resume simulator")
         self.is_pause = False
         self.person.resume()
         self.robot.resume()
         rospy.loginfo("resumed simulator")
+=======
+        # rospy.loginfo("resume simulator")
+        self.is_pause = False
+        self.person.resume()
+        self.robot.resume()
+        # rospy.loginfo("resumed simulator")
+>>>>>>> MCTS
 
     def calculate_angle_using_path(self, idx):
         return math.atan2(self.path["points"][idx+1][1] - self.path["points"][idx][1], self.path["points"][idx+1][0] - self.path["points"][idx][0])
@@ -1169,11 +2129,18 @@ class GazeborosEnv(gym.Env):
     def get_global_position(pos_goal, center):
         while not center.is_current_state_ready():
             if center.reset:
+<<<<<<< HEAD
                 rospy.logwarn("reseting so return none in rel pos rel: {} center".format(relative.is_current_state_ready(), center.is_current_state_ready()))
                 return (None, None)
             time.sleep(0.01)
             rospy.logwarn ("waiting for observation to be ready")
         #relative_orientation = relative.state_['orientation']
+=======
+                rospy.logwarn("reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
+                return (None, None)
+            time.sleep(0.01)
+            rospy.logwarn("waiting for observation to be ready")
+>>>>>>> MCTS
         center_pos = np.asarray(center.state_['position'])
         center_orientation = center.state_['orientation']
 
@@ -1182,15 +2149,25 @@ class GazeborosEnv(gym.Env):
         relative_pos = np.asarray(pos_goal)
 
         # transform the relative to center coordinat
+<<<<<<< HEAD
         rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], [-np.sin(center_orientation), np.cos(center_orientation)]])
+=======
+        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+                                     [-np.sin(center_orientation), np.cos(center_orientation)]])
+>>>>>>> MCTS
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         global_pos = np.asarray(relative_pos + center_pos)
         return global_pos
 
+<<<<<<< HEAD
+=======
+    # between pose and Robot. where pose is position and orientation, and robot is the PointOfOrigin
+>>>>>>> MCTS
     @staticmethod
     def get_global_position_orientation(pos_goal, orientation_goal, center):
         while not center.is_current_state_ready():
             if center.reset:
+<<<<<<< HEAD
                 rospy.logwarn("reseting so return none in rel pos rel: {} center".format(relative.is_current_state_ready(), center.is_current_state_ready()))
                 return (None, None)
             time.sleep(0.01)
@@ -1206,14 +2183,38 @@ class GazeborosEnv(gym.Env):
 
         # transform the relative to center coordinat
         rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], [-np.sin(center_orientation), np.cos(center_orientation)]])
+=======
+                rospy.logwarn(f"reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
+                return (None, None)
+            time.sleep(0.01)
+            rospy.logwarn("waiting for observation to be ready")
+        center_pos = np.asarray(center.state_['position'])
+        center_orientation = center.state_['orientation']
+
+        relative_pos = np.asarray(pos_goal)
+        # relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal)], # TODO: This is repalced due to a odd bug `TypeError: Field elements must be 2- or 3-tuples, got '0.123'`. I think this was caused by a dependency update
+        #                            [relative_pos[1] + math.sin(orientation_goal)])
+        relative_pos2 = np.asarray([relative_pos[0] + math.cos(orientation_goal),
+                                    relative_pos[1] + math.sin(orientation_goal)]).T
+        # transform the relative to center coordinat
+        rotation_matrix = np.asarray([[np.cos(center_orientation), np.sin(center_orientation)], # TODO Ali: I think this is a bug. it should be -center_orientation, like in other `rotation_matrix`s
+                                     [-np.sin(center_orientation), np.cos(center_orientation)]])
+>>>>>>> MCTS
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
         global_pos = np.asarray(relative_pos + center_pos)
         global_pos2 = np.asarray(relative_pos2 + center_pos)
+<<<<<<< HEAD
         new_orientation = np.arctan2(global_pos2[1]-global_pos[1], global_pos2[0]-global_pos[0])
         return global_pos, new_orientation
 
 
+=======
+        new_orientation = np.arctan2(
+            global_pos2[1]-global_pos[1], global_pos2[0]-global_pos[0])
+        return global_pos, new_orientation
+
+>>>>>>> MCTS
     @staticmethod
     def wrap_pi_to_pi(angle):
         while angle > math.pi:
@@ -1222,32 +2223,59 @@ class GazeborosEnv(gym.Env):
             angle += 2*math.pi
         return angle
 
+<<<<<<< HEAD
+=======
+    # between two robot objects
+>>>>>>> MCTS
     @staticmethod
     def get_relative_heading_position(relative, center):
         while not relative.is_current_state_ready() or not center.is_current_state_ready():
             if relative.reset:
+<<<<<<< HEAD
                 rospy.logwarn("reseting so return none in rel pos rel: {} center".format(relative.is_current_state_ready(), center.is_current_state_ready()))
                 return (None, None)
             time.sleep(0.1)
             rospy.loginfo ("waiting for observation to be ready heading pos")
+=======
+                rospy.logwarn("reseting so return none in rel pos rel: {} center".format(
+                    relative.is_current_state_ready(), center.is_current_state_ready()))
+                return (None, None)
+            time.sleep(0.1)
+            rospy.loginfo("waiting for observation to be ready heading pos")
+>>>>>>> MCTS
         relative_orientation = relative.state_['orientation']
         center_pos = np.asarray(center.state_['position'])
         center_orientation = center.state_['orientation']
 
         # transform the relative to center coordinat
         relative_pos = np.asarray(relative.state_['position'] - center_pos)
+<<<<<<< HEAD
         relative_pos2 = np.asarray((relative_pos[0] +math.cos(relative_orientation) , relative_pos[1] + math.sin(relative_orientation)))
         rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], [-np.sin(-center_orientation), np.cos(-center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
         angle_relative = np.arctan2(relative_pos2[1]-relative_pos[1], relative_pos2[0]-relative_pos[0])
+=======
+        relative_pos2 = np.asarray((relative_pos[0] + math.cos(
+            relative_orientation), relative_pos[1] + math.sin(relative_orientation)))
+        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], # R(-Theta) is CW rotation 
+                                     [-np.sin(-center_orientation), np.cos(-center_orientation)]])
+        relative_pos = np.matmul(relative_pos, rotation_matrix)
+        relative_pos2 = np.matmul(relative_pos2, rotation_matrix)
+        angle_relative = np.arctan2(
+            relative_pos2[1]-relative_pos[1], relative_pos2[0]-relative_pos[0])
+>>>>>>> MCTS
         return -angle_relative, relative_pos
 
     @staticmethod
     def get_relative_position(pos, center):
         while not center.is_current_state_ready():
             if center.reset:
+<<<<<<< HEAD
                 rospy.loginfo("reseting so return none in rel pos rel: {} center".format(relative.is_current_state_ready(), center.is_current_state_ready()))
+=======
+                rospy.loginfo("reseting so return none in rel pos rel: {center.is_current_state_ready()} center")
+>>>>>>> MCTS
                 return (None, None)
             time.sleep(0.01)
             rospy.loginfo("waiting for observation to be ready relative pos")
@@ -1258,6 +2286,7 @@ class GazeborosEnv(gym.Env):
         relative_pos = np.asarray(pos)
         # transform the relative to center coordinat
         relative_pos = np.asarray(relative_pos - center_pos)
+<<<<<<< HEAD
         rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], [-np.sin(-center_orientation), np.cos(-center_orientation)]])
         relative_pos = np.matmul(relative_pos, rotation_matrix)
         return relative_pos
@@ -1266,14 +2295,30 @@ class GazeborosEnv(gym.Env):
     def set_robot_to_auto(self):
         self.robot_mode = 1
 
+=======
+        rotation_matrix = np.asarray([[np.cos(-center_orientation), np.sin(-center_orientation)], # R(-Theta) is CW rotation 
+                                     [-np.sin(-center_orientation), np.cos(-center_orientation)]])
+        relative_pos = np.matmul(relative_pos, rotation_matrix)
+        return relative_pos
+
+    def set_robot_to_auto(self):
+        self.robot_mode = 1
+            
+>>>>>>> MCTS
     def respect_orientation(self, xy, orientation):
         x = math.cos(orientation) * xy[0] - math.sin(orientation) * xy[1]
         y = math.sin(orientation) * xy[0] + math.cos(orientation) * xy[1]
 
+<<<<<<< HEAD
         return [x,y]
 
     def path_follower(self, idx_start, robot, person_init_pose):
 
+=======
+        return [x, y]
+
+    def path_follower(self, idx_start, robot, person_init_pose):
+>>>>>>> MCTS
         """
         Move base person mode:
         1: Attempt left curved path
@@ -1283,6 +2328,7 @@ class GazeborosEnv(gym.Env):
         0/default: Attempt straight path
         """
         if self.person_use_move_base:
+<<<<<<< HEAD
             print(f"person_mode = {self.person_mode}")
                            
             if self.person_mode == 1:
@@ -1294,22 +2340,53 @@ class GazeborosEnv(gym.Env):
                     target_orientation = person_init_pose["orientation"] + i * math.pi/EnvConfig.EPISODE_LEN/2
 
                     self.person.take_action(action, target_orientation=target_orientation)
+=======
+            if self.person_mode == 1:
+                interval = 3
+                for i in range(math.floor(EnvConfig.EPISODE_LEN/interval)):
+                    action = [0.5, i*0.5]
+                    action = self.respect_orientation(
+                        action, person_init_pose["orientation"])
+
+                    target_orientation = person_init_pose["orientation"] + \
+                        i * math.pi/EnvConfig.EPISODE_LEN/2
+
+                    self.person.take_action(
+                        action, target_orientation=target_orientation)
+>>>>>>> MCTS
                     rospy.sleep(interval)
             elif self.person_mode == 2:
                 interval = 3
                 for i in range(math.floor(EnvConfig.EPISODE_LEN/interval)):
+<<<<<<< HEAD
                     action = [0.5,-i * 0.5]
                     action = self.respect_orientation(action, person_init_pose["orientation"])
 
                     target_orientation = person_init_pose["orientation"] - i * math.pi/EnvConfig.EPISODE_LEN/2
 
                     self.person.take_action(action, target_orientation=target_orientation)
+=======
+                    action = [0.5, -i * 0.5]
+                    action = self.respect_orientation(
+                        action, person_init_pose["orientation"])
+
+                    target_orientation = person_init_pose["orientation"] - \
+                        i * math.pi/EnvConfig.EPISODE_LEN/2
+
+                    self.person.take_action(
+                        action, target_orientation=target_orientation)
+>>>>>>> MCTS
                     rospy.sleep(interval)
             elif self.person_mode == 3:
                 interval = 5
                 for i in range(math.floor(EnvConfig.EPISODE_LEN/interval)):
+<<<<<<< HEAD
                     x = random.uniform(-1,1)
                     y = random.uniform(-1,1)
+=======
+                    x = random.uniform(-1, 1)
+                    y = random.uniform(-1, 1)
+>>>>>>> MCTS
 
                     self.person.take_action([x, y])
                     rospy.sleep(interval)
@@ -1317,26 +2394,48 @@ class GazeborosEnv(gym.Env):
                 y = 0.5
                 interval = 3
                 for i in range(math.floor(EnvConfig.EPISODE_LEN/interval)):
+<<<<<<< HEAD
                     action = [1,y]
                     action = self.respect_orientation(action, person_init_pose["orientation"])
 
                     target_orientation = person_init_pose["orientation"] - y * math.pi/4
 
                     self.person.take_action(action, target_orientation=target_orientation)
+=======
+                    action = [1, y]
+                    action = self.respect_orientation(
+                        action, person_init_pose["orientation"])
+
+                    target_orientation = person_init_pose["orientation"] - \
+                        y * math.pi/4
+
+                    self.person.take_action(
+                        action, target_orientation=target_orientation)
+>>>>>>> MCTS
                     y *= -1
                     rospy.sleep(interval)
             else:
                 # 0/Default: Straight path
                 for i in range(EnvConfig.EPISODE_LEN):
+<<<<<<< HEAD
                     action = [2,0]
                     action = self.respect_orientation(action, person_init_pose["orientation"])
                     self.person.take_action(action)
                     rospy.sleep(1)
                 
+=======
+                    action = [2, 0]
+                    action = self.respect_orientation(
+                        action, person_init_pose["orientation"])
+                    self.person.take_action(action)
+                    rospy.sleep(1)
+
+>>>>>>> MCTS
         else:
             counter = 0
             while self.is_pause:
                 if self.is_reseting:
+<<<<<<< HEAD
                     rospy.loginfo( "path follower return as reseting ")
                     return
                 time.sleep(0.001)
@@ -1345,11 +2444,28 @@ class GazeborosEnv(gym.Env):
                     counter = 0
                 counter += 1
             rospy.loginfo( "path follower waiting for lock pause:{} reset:{}".format(self.is_pause, self.is_reseting))
+=======
+                    rospy.loginfo("path follower return as reseting ")
+                    return
+                time.sleep(0.001)
+                if counter > 10000:
+                    rospy.loginfo(
+                        "path follower waiting for pause to be false")
+                    counter = 0
+                counter += 1
+            rospy.loginfo("path follower waiting for lock pause:{} reset:{}".format(
+                self.is_pause, self.is_reseting))
+>>>>>>> MCTS
             if self.lock.acquire(timeout=10):
                 rospy.sleep(1.5)
                 rospy.loginfo("path follower got the lock")
                 if self.is_use_test_setting:
+<<<<<<< HEAD
                     mode_person = self.path_follower_test_settings[self.path_follower_current_setting_idx][0]
+=======
+                    mode_person = self.path_follower_test_settings[
+                        self.path_follower_current_setting_idx][0]
+>>>>>>> MCTS
                 elif self.test_simulation_:
                     mode_person = -1
                 elif self.is_evaluation_:
@@ -1358,9 +2474,15 @@ class GazeborosEnv(gym.Env):
                     mode_person = self.mode_person
                 else:
                     mode_person = random.randint(0, 7)
+<<<<<<< HEAD
                     #if self.agent_num == 2:
                     #    mode_person = random.randint(1, self.max_mod_person_)
                     #else:
+=======
+                    # if self.agent_num == 2:
+                    #    mode_person = random.randint(1, self.max_mod_person_)
+                    # else:
+>>>>>>> MCTS
                     #    mode_person = 0
                     # if self.agent_num == 0:
                     #     mode_person = 5
@@ -1376,6 +2498,7 @@ class GazeborosEnv(gym.Env):
                 #     person_thread = threading.Thread(target=self.person.go_to_goal, args=())
                 #     person_thread.start()
                 if self.use_goal and not self.use_movebase:
+<<<<<<< HEAD
                     self.robot_thread = threading.Thread(target=self.robot.go_to_goal, args=())
                     self.robot_thread.start()
 
@@ -1385,6 +2508,19 @@ class GazeborosEnv(gym.Env):
                     counter_pause = 0
                     while self.is_pause:
                         counter_pause+=1
+=======
+                    self.robot_thread = threading.Thread(
+                        target=self.robot.go_to_goal, args=())
+                    self.robot_thread.start()
+
+                for idx in range(idx_start, len(self.path["points"])-3):
+                    point = (self.path["points"][idx][0],
+                             self.path["points"][idx][1])
+                    self.current_path_idx = idx
+                    counter_pause = 0
+                    while self.is_pause:
+                        counter_pause += 1
+>>>>>>> MCTS
                         rospy.loginfo("pause in path follower")
                         if self.is_reseting or counter_pause > 200:
                             # if mode_person == 0:
@@ -1396,7 +2532,12 @@ class GazeborosEnv(gym.Env):
                         if mode_person <= 6:
                             self.person.use_selected_person_mod(mode_person)
                         else:
+<<<<<<< HEAD
                             self.person.go_to_pos(point, stop_after_getting=True)
+=======
+                            self.person.go_to_pos(
+                                point, stop_after_getting=True)
+>>>>>>> MCTS
                             time.sleep(0.001)
                         # person_thread.start()
                         # if self.robot_mode == 1:
@@ -1409,7 +2550,12 @@ class GazeborosEnv(gym.Env):
                         # person_thread.join()
 
                     except Exception as e:
+<<<<<<< HEAD
                         rospy.logerr("path follower {}, {}".format(self.is_reseting, e))
+=======
+                        rospy.logerr("path follower {}, {}".format(
+                            self.is_reseting, e))
+>>>>>>> MCTS
                         traceback.print_exc()
                         break
                     if self.is_reseting:
@@ -1422,6 +2568,7 @@ class GazeborosEnv(gym.Env):
                 rospy.loginfo("problem in getting the log in path follower")
             # robot.stop_robot()
 
+<<<<<<< HEAD
 
     def get_laser_scan(self):
         return self.robot.get_laser_image()
@@ -1445,6 +2592,130 @@ class GazeborosEnv(gym.Env):
         return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
 
 
+=======
+    # def get_laser_scan(self):
+    #     return self.robot.get_laser_image()
+
+    # def get_laser_scan_all(self):
+        # images = self.robot.scan_image_history.get_elemets()
+        # counter = 0
+        # while len(images) != self.robot.scan_image_history.window_size and counter < 250:
+        #     images = self.robot.scan_image_history.get_elemets()
+        #     time.sleep(0.005)
+        #     counter += 1
+        #     if counter > 100:
+        #         rospy.loginfo(
+        #             "wait for laser scan to get filled sec: {}/25".format(counter / 10))
+        # if counter >= 250:
+        #     raise RuntimeError(
+        #         'exception while calling get_laser_scan:')
+        # images = np.asarray(images)
+
+        # return (images.reshape((images.shape[1], images.shape[2], images.shape[0])))
+
+    def get_observation_relative_robot(self, states_to_simulate_robot=None, states_to_simulate_person=None):
+        '''
+        We have Robot simulated to making the observation. We need to ensure it is relative to the last (simulated) robot position. that logic is done in the function which calles this.
+            - this is because we DO NOT have the last (simulated) position here, only the last physcal one.
+            - not to mention the last physcal position is not relative to the robot. I ignore this is the `states_to_simulates` "should" be more than the window size (10), but it probably does not need to be. Worse case it is noise, that we can learn to ignore  
+
+        '''
+        while self.robot.pos_history.avg_frame_rate is None or self.person.pos_history.avg_frame_rate is None or self.robot.velocity_history.avg_frame_rate is None or self.person.velocity_history.avg_frame_rate is None:
+            if self.is_reseting:
+                return None
+            time.sleep(0.001)
+
+        # rospy.logwarn(f'')
+
+        # // Copy all data. TODO not be relative to robot, but this might not matter 
+        self.robot_simulated.state_ = self.robot.state_
+        # self.robot_simulated.orientation_history = self.robot.orientation_history.deepcopy()
+        # self.robot_simulated.pos_history = self.robot.pos_history.deepcopy()
+        # self.robot_simulated.velocity_history = self.robot.velocity_history.deepcopy()
+        # self.robot_simulated.all_pose_ = deepcopy(self.robot.all_pose_)
+
+        self.person_simulated.state_ = self.person.state_
+        # self.person_simulated.orientation_history = self.person.orientation_history.deepcopy()
+        # self.person_simulated.pos_history = self.person.pos_history.deepcopy()
+        # self.person_simulated.velocity_history = self.person.velocity_history.deepcopy()
+        # self.person_simulated.all_pose_ = deepcopy(self.person.all_pose_)
+        robot_pos_history, person_pos_history = [], []
+        # // Simulate. 
+        if states_to_simulate_robot is not None: # Made relative in MCTS
+            pad = states_to_simulate_robot[0]
+            while len(states_to_simulate_robot) < 10:
+                states_to_simulate_robot.insert(0, pad)  
+        else:
+            pad = self.robot.state_
+            states_to_simulate_robot = [dict(self.robot.state_) for _ in range(10)]
+
+        for state in states_to_simulate_robot[-10:]:
+            # self.robot.robot_simulated.set_state(state) # def set_state() calls history, that is an issue
+            self.robot_simulated.state_["position"] = state["position"]
+            self.robot_simulated.state_["orientation"] = state["orientation"]
+            self.robot_simulated.state_["velocity"] = state["velocity"]
+            robot_pos_history.append(state["position"])
+        robot_vel_latest = states_to_simulate_robot[-1]["velocity"]
+
+
+        if states_to_simulate_person is not None:
+            pad = states_to_simulate_person[0]
+            while len(states_to_simulate_person) < 10:
+                states_to_simulate_person.insert(0, pad)
+        else:
+            states_to_simulate_person = [dict(self.person.state_) for _ in range(10)]
+
+        for state in states_to_simulate_person[-10:]:
+            self.person_simulated.state_["position"] = state["position"]
+            self.person_simulated.state_["orientation"] = state["orientation"]
+            self.person_simulated.state_["velocity"] = state["velocity"]
+            person_pos_history.append(state["position"])
+        person_vel_latest = states_to_simulate_person[-1]["velocity"]
+
+        
+        
+        # pos_his_robot = np.asarray(self.robot_simulated.pos_history.get_elemets()) 
+        pos_his_robot = np.asarray(person_pos_history) 
+        heading_robot = self.robot_simulated.state_["orientation"]
+
+        # pos_his_person = np.asarray(self.person_simulated.pos_history.get_elemets())
+        pos_his_person = np.asarray(robot_pos_history) 
+        heading_person = self.person_simulated.state_["orientation"]
+
+        robot_vel = np.asarray(robot_vel_latest)
+        person_vel = np.asarray(person_vel_latest) # was self.person_simulated.get_velocity() which is the most recent in its history
+
+        poses = np.concatenate((pos_his_robot, pos_his_person))
+        if self.use_noise:
+            poses += np.random.normal(loc=0, scale=0.1, size=poses.shape)
+            heading_robot += np.random.normal(loc=0, scale=0.2)
+            heading_person += np.random.normal(loc=0, scale=0.2)
+            robot_vel += np.random.normal(loc=0, scale=0.1, size=robot_vel.shape)
+            person_vel += np.random.normal(loc=0, scale=0.1, size=person_vel.shape)
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
+        pos_rel = []
+
+        relative_to = self.robot_simulated
+        for pos in (poses):
+            # TODO_changed from self.robot.relative to self.robot_simulated
+            relative = GazeborosEnv.get_relative_position(pos, relative_to)
+            pos_rel.append(relative)
+        pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
+
+        # TODO: make the velocity normalization better
+        velocities = np.concatenate((person_vel, robot_vel))/self.robot_simulated.max_angular_vel
+        if self.use_orientation_in_observation:  # True
+            velocities_heading = np.append(velocities, heading_relative)
+        else:
+            velocities_heading = velocities
+            
+        final_ob = np.append(np.append(pos_history, velocities_heading), self.prev_action)
+
+        # if HINN:
+        #     final_ob = np.append(np.append(np.append(person_vel, heading_person), pos_his_person), self.person_scan)
+
+        return final_ob
+>>>>>>> MCTS
 
     def get_observation(self):
         # got_laser = False
@@ -1472,6 +2743,7 @@ class GazeborosEnv(gym.Env):
             poses += np.random.normal(loc=0, scale=0.1, size=poses.shape)
             heading_robot += np.random.normal(loc=0, scale=0.2)
             heading_person += np.random.normal(loc=0, scale=0.2)
+<<<<<<< HEAD
             robot_vel += np.random.normal(loc=0, scale=0.1, size=robot_vel.shape)
             person_vel += np.random.normal(loc=0, scale=0.1, size=person_vel.shape)
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
@@ -1489,20 +2761,59 @@ class GazeborosEnv(gym.Env):
             velocities_heading = velocities
         final_ob =  np.append(np.append(pos_history, velocities_heading), self.prev_action)
 
+=======
+            robot_vel += np.random.normal(loc=0,
+                                          scale=0.1, size=robot_vel.shape)
+            person_vel += np.random.normal(loc=0,
+                                           scale=0.1, size=person_vel.shape)
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(
+            heading_robot-heading_person)/(math.pi)
+        pos_rel = []
+        for pos in (poses):
+            # pos relative to robot.relative, which is person
+            relative = GazeborosEnv.get_relative_position(
+                pos, self.robot.relative)
+            pos_rel.append(relative)
+        pos_history = np.asarray(np.asarray(pos_rel)).flatten()/6.0
+        # TODO: make the velocity normalization better
+        velocities = np.concatenate(
+            (person_vel, robot_vel))/self.robot.max_angular_vel
+        if self.use_orientation_in_observation:  # True
+            velocities_heading = np.append(velocities, heading_relative)
+        else:
+            velocities_heading = velocities
+        final_ob = np.append(
+            np.append(pos_history, velocities_heading), self.prev_action)
+>>>>>>> MCTS
         if EnvConfig.RETURN_HINN_STATE:
             final_ob = np.append(np.append(person_vel, heading_person), pos_his_person)
 
             # if EnvConfig.USE_OBSTACLES:
             final_ob = np.append(final_ob, self.person_scan)
+<<<<<<< HEAD
+=======
+        else:
+            if EnvConfig.OUTPUT_OBSTACLES_IN_STATE:
+                final_ob = np.append(final_ob, self.person_scan)
+>>>>>>> MCTS
 
         return final_ob
 
     def __del__(self):
+<<<<<<< HEAD
         return
 
     def visualize_observation(self):
         observation_image = np.zeros([2000,2000,3])
         observation_image_gt = np.zeros([2000,2000,3])
+=======
+        # todo
+        return
+
+    def visualize_observation(self):
+        observation_image = np.zeros([2000, 2000, 3])
+        observation_image_gt = np.zeros([2000, 2000, 3])
+>>>>>>> MCTS
         observation_image = observation_image.astype(np.uint8)
         observation_image_gt = observation_image_gt.astype(np.uint8)
         observation_image.fill(255)
@@ -1517,25 +2828,49 @@ class GazeborosEnv(gym.Env):
         pos_his_person = self.person.pos_history.get_elemets()
         heading_person = self.person.state_["orientation"]
 
+<<<<<<< HEAD
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)/(math.pi)
+=======
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(
+            heading_robot-heading_person)/(math.pi)
+>>>>>>> MCTS
         center_pos = pos_his_robot[-1]
         for pos in pos_his_robot:
             relative = GazeborosEnv.get_relative_position(pos, self.robot)
             pos_rel = GazeborosEnv.to_image_coordinate(relative, (0, 0))
             pos_gt = GazeborosEnv.to_image_coordinate(pos, center_pos)
+<<<<<<< HEAD
             observation_image = self.add_circle_observation_to_image(relative, (255, 0, 0), 10, center_pos=(0,0), image=observation_image)
             observation_image_gt = self.add_circle_observation_to_image(pos, (255, 0, 0), 10, center_pos=center_pos, image=observation_image_gt)
+=======
+            observation_image = self.add_circle_observation_to_image(
+                relative, (255, 0, 0), 10, center_pos=(0, 0), image=observation_image)
+            observation_image_gt = self.add_circle_observation_to_image(
+                pos, (255, 0, 0), 10, center_pos=center_pos, image=observation_image_gt)
+>>>>>>> MCTS
 
         for pos in pos_his_person:
             relative = GazeborosEnv.get_relative_position(pos, self.robot)
             pos_rel = GazeborosEnv.to_image_coordinate(relative, (0, 0))
             pos_gt = GazeborosEnv.to_image_coordinate(pos, center_pos)
+<<<<<<< HEAD
             observation_image = self.add_circle_observation_to_image(relative, (0, 255, 0), 10, image = observation_image, center_pos=(0,0))
             observation_image_gt = self.add_circle_observation_to_image(pos, (0, 255, 0), 10, image=observation_image_gt, center_pos=center_pos)
 
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(observation_image, encoding="bgr8"))
         self.image_pub_gt.publish(self.bridge.cv2_to_imgmsg(observation_image_gt, encoding="bgr8"))
 
+=======
+            observation_image = self.add_circle_observation_to_image(
+                relative, (0, 255, 0), 10, image=observation_image, center_pos=(0, 0))
+            observation_image_gt = self.add_circle_observation_to_image(
+                pos, (0, 255, 0), 10, image=observation_image_gt, center_pos=center_pos)
+
+        self.image_pub.publish(self.bridge.cv2_to_imgmsg(
+            observation_image, encoding="bgr8"))
+        self.image_pub_gt.publish(self.bridge.cv2_to_imgmsg(
+            observation_image_gt, encoding="bgr8"))
+>>>>>>> MCTS
 
     @staticmethod
     def to_image_coordinate(pos, center_pos):
@@ -1545,35 +2880,70 @@ class GazeborosEnv(gym.Env):
         color = self.colors_visualization[self.color_index]
         pos_image = GazeborosEnv.to_image_coordinate(pos, self.center_pos_)
         pos_image2 = GazeborosEnv.to_image_coordinate(pos2, self.center_pos_)
+<<<<<<< HEAD
         if pos_image[0] >2000 or pos_image[0] < 0 or pos_image[1] >2000 or pos_image[1] < 0:
             rospy.logerr("problem with observation: {}".format(pos_image))
             return
         self.new_obsevation_image_ = cv.line(self.new_obsevation_image_, (pos_image[0], pos_image[1]), (pos_image2[0], pos_image2[1]), color, 1)
+=======
+        if pos_image[0] > 2000 or pos_image[0] < 0 or pos_image[1] > 2000 or pos_image[1] < 0:
+            rospy.logerr("problem with observation: {}".format(pos_image))
+            return
+        self.new_obsevation_image_ = cv.line(self.new_obsevation_image_, (
+            pos_image[0], pos_image[1]), (pos_image2[0], pos_image2[1]), color, 1)
+>>>>>>> MCTS
 
     def add_triangle_observation_to_image(self, pos, orientation):
         color = self.colors_visualization[self.color_index]
         pos_image = GazeborosEnv.to_image_coordinate(pos, self.center_pos_)
+<<<<<<< HEAD
         pos_triangle1 = GazeborosEnv.to_image_coordinate((pos[0]+math.cos(orientation)*0.3, pos[1]+math.sin(orientation)*0.3), self.center_pos_)
         pos_triangle2 = GazeborosEnv.to_image_coordinate((pos[0]+math.cos(orientation+math.pi/2)*0.1, pos[1]+math.sin(orientation+math.pi/2)*0.1), self.center_pos_)
         pos_triangle3 = GazeborosEnv.to_image_coordinate((pos[0]+math.cos(orientation-math.pi/2)*0.1, pos[1]+math.sin(orientation-math.pi/2)*0.1), self.center_pos_)
+=======
+        pos_triangle1 = GazeborosEnv.to_image_coordinate(
+            (pos[0]+math.cos(orientation)*0.3, pos[1]+math.sin(orientation)*0.3), self.center_pos_)
+        pos_triangle2 = GazeborosEnv.to_image_coordinate(
+            (pos[0]+math.cos(orientation+math.pi/2)*0.1, pos[1]+math.sin(orientation+math.pi/2)*0.1), self.center_pos_)
+        pos_triangle3 = GazeborosEnv.to_image_coordinate(
+            (pos[0]+math.cos(orientation-math.pi/2)*0.1, pos[1]+math.sin(orientation-math.pi/2)*0.1), self.center_pos_)
+>>>>>>> MCTS
         poses = [pos_triangle1, pos_triangle2, pos_triangle3]
         print(poses)
 
         for pos in poses:
+<<<<<<< HEAD
             if pos[0] >2000 or pos[0] < 0 or pos[1] >2000 or pos[1] < 0:
                 rospy.logerr("problem with observation: {}".format(pos))
                 return
         self.new_obsevation_image_ = cv.drawContours(self.new_obsevation_image_, [np.asarray(poses)], 0, color, -1)
 
+=======
+            if pos[0] > 2000 or pos[0] < 0 or pos[1] > 2000 or pos[1] < 0:
+                rospy.logerr("problem with observation: {}".format(pos))
+                return
+        self.new_obsevation_image_ = cv.drawContours(
+            self.new_obsevation_image_, [np.asarray(poses)], 0, color, -1)
+>>>>>>> MCTS
 
     def add_arrow_observation_to_image(self, pos, orientation):
         color = self.colors_visualization[self.color_index]
         pos_image = GazeborosEnv.to_image_coordinate(pos, self.center_pos_)
+<<<<<<< HEAD
         pos_image2 = GazeborosEnv.to_image_coordinate((pos[0]+math.cos(orientation)*0.3, pos[1]+math.sin(orientation)*0.3), self.center_pos_)
         if pos_image[0] >2000 or pos_image[0] < 0 or pos_image[1] >2000 or pos_image[1] < 0:
             rospy.logerr("problem with observation: {}".format(pos_image))
             return
         self.new_obsevation_image_ = cv.arrowedLine(self.new_obsevation_image_, (pos_image[0], pos_image[1]), (pos_image2[0], pos_image2[1]), color, 2, tipLength=0.5)
+=======
+        pos_image2 = GazeborosEnv.to_image_coordinate(
+            (pos[0]+math.cos(orientation)*0.3, pos[1]+math.sin(orientation)*0.3), self.center_pos_)
+        if pos_image[0] > 2000 or pos_image[0] < 0 or pos_image[1] > 2000 or pos_image[1] < 0:
+            rospy.logerr("problem with observation: {}".format(pos_image))
+            return
+        self.new_obsevation_image_ = cv.arrowedLine(self.new_obsevation_image_, (
+            pos_image[0], pos_image[1]), (pos_image2[0], pos_image2[1]), color, 2, tipLength=0.5)
+>>>>>>> MCTS
 
     def add_circle_observation_to_image(self, pos, color, radious, center_pos=None, image=None):
         if image is None:
@@ -1581,20 +2951,32 @@ class GazeborosEnv(gym.Env):
         if center_pos is None:
             center_pos = self.center_pos_
         pos_image = GazeborosEnv.to_image_coordinate(pos, center_pos)
+<<<<<<< HEAD
         if pos_image[0] >2000 or pos_image[0] < 0 or pos_image[1] >2000 or pos_image[1] < 0:
             rospy.logerr("problem with observation: {}".format(pos_image))
             return
         return (cv.circle(image , (pos_image[0], pos_image[1]), radious, color, 2))
+=======
+        if pos_image[0] > 2000 or pos_image[0] < 0 or pos_image[1] > 2000 or pos_image[1] < 0:
+            rospy.logerr("problem with observation: {}".format(pos_image))
+            return
+        return (cv.circle(image, (pos_image[0], pos_image[1]), radious, color, 2))
+>>>>>>> MCTS
 
     def get_supervised_action(self):
         while not self.person.is_current_state_ready() and not self.is_reseting:
             time.sleep(0.1)
         if self.is_reseting:
+<<<<<<< HEAD
             return np.asarray([0,0])
+=======
+            return np.asarray([0, 0])
+>>>>>>> MCTS
 
         self.use_supervise_action = True
         pos = self.person.calculate_ahead(1.5)
         pos_person = self.person.get_pos()
+<<<<<<< HEAD
         pos_relative = GazeborosEnv.get_relative_position(pos, self.robot.relative)
         pos_person_relative = GazeborosEnv.get_relative_position(pos_person, self.robot.relative)
         pos_norm = GazeborosEnv.normalize(pos_relative, self.robot.max_rel_pos_range)
@@ -1602,6 +2984,18 @@ class GazeborosEnv(gym.Env):
         return np.asarray((pos_norm[0], pos_norm[1], orientation))
 
 
+=======
+        pos_relative = GazeborosEnv.get_relative_position(
+            pos, self.robot.relative)
+        pos_person_relative = GazeborosEnv.get_relative_position(
+            pos_person, self.robot.relative)
+        pos_norm = GazeborosEnv.normalize(
+            pos_relative, self.robot.max_rel_pos_range)
+        orientation = GazeborosEnv.normalize(math.atan2(
+            pos_relative[1] - pos_person_relative[1], pos_relative[0] - pos_person_relative[0]), math.pi)
+        return np.asarray((pos_norm[0], pos_norm[1], orientation))
+
+>>>>>>> MCTS
     def update_observation_image(self):
         self.new_obsevation_image_ = np.copy(self.current_obsevation_image_)
         robot_pos = self.robot.get_pos()
@@ -1618,8 +3012,15 @@ class GazeborosEnv(gym.Env):
             # self.new_obsevation_image_ = self.add_circle_observation_to_image(person_pos,[0,100,100], 10)
             self.first_call_observation = False
         if self.is_collided():
+<<<<<<< HEAD
             self.new_obsevation_image_ = self.add_circle_observation_to_image(robot_pos, [152,200,200], 10)
             self.new_obsevation_image_ = self.add_circle_observation_to_image(person_pos,[200,100,100], 10)
+=======
+            self.new_obsevation_image_ = self.add_circle_observation_to_image(robot_pos, [
+                                                                              152, 200, 200], 10)
+            self.new_obsevation_image_ = self.add_circle_observation_to_image(person_pos, [
+                                                                              200, 100, 100], 10)
+>>>>>>> MCTS
         self.add_arrow_observation_to_image(robot_pos, robot_orientation)
         self.add_triangle_observation_to_image(person_pos, person_orientation)
 
@@ -1628,12 +3029,22 @@ class GazeborosEnv(gym.Env):
                 goal_orientation = current_goal["orientation"]
             else:
                 goal_orientation = robot_orientation
+<<<<<<< HEAD
             self.add_circle_observation_to_image(current_goal["pos"], self.colors_visualization[self.color_index], 5)
+=======
+            self.add_circle_observation_to_image(
+                current_goal["pos"], self.colors_visualization[self.color_index], 5)
+>>>>>>> MCTS
             #self.add_line_observation_to_image(robot_pos, current_goal["pos"])
         else:
             self.add_line_observation_to_image(robot_pos, person_pos)
         alpha = 0.50
+<<<<<<< HEAD
         self.current_obsevation_image_ = cv.addWeighted(self.new_obsevation_image_, alpha, self.current_obsevation_image_, 1 - alpha, 0)
+=======
+        self.current_obsevation_image_ = cv.addWeighted(
+            self.new_obsevation_image_, alpha, self.current_obsevation_image_, 1 - alpha, 0)
+>>>>>>> MCTS
 
     def get_current_observation_image(self):
 
@@ -1643,6 +3054,7 @@ class GazeborosEnv(gym.Env):
             self.save_current_path()
         return image
 
+<<<<<<< HEAD
 
     def take_action(self, action):
         self.prev_action = action[:2]
@@ -1656,6 +3068,18 @@ class GazeborosEnv(gym.Env):
             if self.color_index >= len(self.colors_visualization):
                 self.color_index = len(self.colors_visualization) - 1
             self.wait_observation_ -= 1
+=======
+    def take_action(self, action):
+        self.prev_action = action[:2]
+        self.robot.take_action(action)
+        if self.wait_observation_ <= 0:
+            self.update_observation_image()
+            self.wait_observation_ = 7
+        self.color_index += 2
+        if self.color_index >= len(self.colors_visualization):
+            self.color_index = len(self.colors_visualization) - 1
+        self.wait_observation_ -= 1
+>>>>>>> MCTS
         return
 
     def is_skip_run(self):
@@ -1670,7 +3094,12 @@ class GazeborosEnv(gym.Env):
         else:
             return True
 
+<<<<<<< HEAD
     def step(self, action):
+=======
+    def step(self, action):  # rename to robot_step. make new one for simulated step that will call this step, that actually does the work/ move
+
+>>>>>>> MCTS
         self.number_of_steps += 1
         self.take_action(action)
         # instead of one reward get all the reward during wait
@@ -1679,11 +3108,16 @@ class GazeborosEnv(gym.Env):
         sleep_time = 0.10
         rewards = []
         if sleep_time > 0.1:
+<<<<<<< HEAD
             for t in range (10):
+=======
+            for t in range(10):
+>>>>>>> MCTS
                 rospy.sleep(sleep_time/10.)
                 rewards.append(self.get_reward())
                 reward = np.mean(rewards)
         else:
+<<<<<<< HEAD
              rospy.sleep(sleep_time)
              reward = self.get_reward()
         ob = self.get_observation()
@@ -1719,18 +3153,59 @@ class GazeborosEnv(gym.Env):
             rospy.loginfo("action {} reward {}".format(action, reward))
         
         if episode_over and not EnvConfig.RETURN_HINN_STATE:
+=======
+            rospy.sleep(sleep_time)
+            reward = self.get_reward()
+        ob = self.get_observation()
+        episode_over = False
+        rel_person = GazeborosEnv.get_relative_heading_position(
+            self.robot, self.person)[1]
+
+        distance = math.hypot(rel_person[0], rel_person[1])
+        if self.path_finished:
+            rospy.loginfo("path finished")
+            episode_over = True
+        if self.is_collided():
+            self.update_observation_image()
+            episode_over = True  # TODO_changed
+            # rospy.loginfo('collision happened episode over')
+            # reward -= 0.5 # 0.5 # TODO_changed maybe remove less when in start of leaning
+        elif distance > 5:
+            self.update_observation_image()
+            self.is_max_distance = True
+            episode_over = True
+            rospy.loginfo('max distance happened episode over')
+        elif self.number_of_steps > self.max_numb_steps:
+            self.update_observation_image()
+            episode_over = True
+        if self.fallen:
+            episode_over = True  # TODO_changed
+            rospy.loginfo('fallen')
+
+        reward = min(max(reward, -1), 1)
+        if self.agent_num == 0:
+            # rospy.loginfo("action {} reward {}".format(action, reward)) # TODO_changed
+            pass
+        if episode_over:
+>>>>>>> MCTS
             self.person.reset = True
         #reward += 1
         return ob, reward, episode_over, {}
 
     def is_collided(self):
+<<<<<<< HEAD
         rel_person = GazeborosEnv.get_relative_heading_position(self.robot, self.person)[1]
+=======
+        rel_person = GazeborosEnv.get_relative_heading_position(
+            self.robot, self.person)[1]
+>>>>>>> MCTS
         distance = math.hypot(rel_person[0], rel_person[1])
         if distance < self.collision_distance or self.robot.is_collided:
             return True
         return False
 
     def get_distance(self):
+<<<<<<< HEAD
         _, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot, self.person)
         return math.hypot(pos_rel[0],pos_rel[1])
 
@@ -1742,20 +3217,49 @@ class GazeborosEnv(gym.Env):
     def get_reward(self):
         reward = 0
         angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot, self.person)
+=======
+        _, pos_rel = GazeborosEnv.get_relative_heading_position(
+            self.robot, self.person)
+        return math.hypot(pos_rel[0], pos_rel[1])
+
+    def get_angle_person_robot(self):
+        _, pos_rel = GazeborosEnv.get_relative_heading_position(
+            self.robot, self.person)
+        angle_robot_person = math.atan2(pos_rel[1], pos_rel[0]) 
+        return (GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
+
+    def get_reward(self, simulate=False):
+        reward = 0
+        if simulate: 
+            angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot_simulated, self.person_simulated)
+        else:   
+            angle_robot_person, pos_rel = GazeborosEnv.get_relative_heading_position(self.robot, self.person)
+>>>>>>> MCTS
         angle_robot_person = math.atan2(pos_rel[1], pos_rel[0])
         angle_robot_person = np.rad2deg(GazeborosEnv.wrap_pi_to_pi(angle_robot_person))
         distance = math.hypot(pos_rel[0], pos_rel[1])
         # Negative reward for being behind the person
         if self.is_collided():
+<<<<<<< HEAD
             reward -= 1
         if distance < 0.5:
             reward = -1.3
+=======
+            reward -= .3  # TODO_changed from 1
+        if distance < 0.5:
+            reward -= 1.0  # TODO_changed from = -1.3
+>>>>>>> MCTS
         elif abs(distance - self.best_distance) < 0.5:
             reward += 0.5 * (0.5 - abs(distance - self.best_distance))
         elif distance >= self.best_distance+0.5:
             reward -= 0.25 * (distance - (self.best_distance+0.5))
         elif distance < self.best_distance-0.5:
+<<<<<<< HEAD
             reward -= (self.best_distance - 0.5 - distance)/(self.best_distance - 0.5)
+=======
+            reward -= (self.best_distance - 0.5 - distance) / \
+                (self.best_distance - 0.5)
+>>>>>>> MCTS
         if abs(angle_robot_person) < 25:
             reward += 0.5 * (25 - abs(angle_robot_person)) / 25
         else:
@@ -1772,10 +3276,19 @@ class GazeborosEnv(gym.Env):
         # else:
         #     reward -= distance / 7.0
         reward = min(max(reward, -1), 1)
+<<<<<<< HEAD
         return reward
 
     def save_log(self):
         pickle.dump({"person_history":self.person.log_history, "robot_history":self.robot.log_history}, self.log_file)
+=======
+        # TODO check for obstacle
+        return reward
+
+    def save_log(self):
+        pickle.dump({"person_history": self.person.log_history,
+                    "robot_history": self.robot.log_history}, self.log_file)
+>>>>>>> MCTS
         self.log_file.close()
 
     def reset(self, reset_gazebo=False):
@@ -1784,11 +3297,16 @@ class GazeborosEnv(gym.Env):
         self.is_reseting = True
         self.robot.reset = True
         self.person.reset = True
+<<<<<<< HEAD
         rospy.loginfo("trying to get the lock for reset")
+=======
+        # rospy.loginfo("trying to get the lock for reset") # TODO_changed
+>>>>>>> MCTS
         # if reset_gazebo:
         #     self.reset_gazebo()
         with self.lock:
 
+<<<<<<< HEAD
             rospy.loginfo("got the lock")
             not_init = True
             try:
@@ -1796,6 +3314,15 @@ class GazeborosEnv(gym.Env):
                 if self.is_evaluation_:
                     if self.log_file is not None:
                         pickle.dump({"person_history":self.person.log_history, "robot_history":self.robot.log_history}, self.log_file)
+=======
+            # rospy.loginfo("got the lock") # TODO_changed
+            not_init = True
+            try:
+                if self.is_evaluation_:
+                    if self.log_file is not None:
+                        pickle.dump({"person_history": self.person.log_history,
+                                    "robot_history": self.robot.log_history}, self.log_file)
+>>>>>>> MCTS
                         self.log_file.close()
 
                     self.path_idx += 1
@@ -1812,7 +3339,11 @@ class GazeborosEnv(gym.Env):
             except RuntimeError as e:
                 rospy.logerr("error happend reseting: {}".format(e))
         if not_init:
+<<<<<<< HEAD
             rospy.loginfo("not init so run reset again")
+=======
+            # rospy.loginfo("not init so run reset again") # TODO_changed
+>>>>>>> MCTS
             return (self.reset())
         else:
             rospy.sleep(2)
@@ -1833,8 +3364,14 @@ class GazeborosEnv(gym.Env):
         name += self.path_follower_test_settings[self.path_follower_current_setting_idx][2]
         if not os.path.exists(directory):
             os.makedirs(directory)
+<<<<<<< HEAD
         with open(os.path.join(directory, name + ".pkl") , "wb") as f:
             pickle.dump({"robot":all_pos_robot, "person":all_pos_person, "name":name}, f)
+=======
+        with open(os.path.join(directory, name + ".pkl"), "wb") as f:
+            pickle.dump({"robot": all_pos_robot,
+                        "person": all_pos_person, "name": name}, f)
+>>>>>>> MCTS
         self.robot.all_pose_ = []
         self.person.all_pose_ = []
 
@@ -1852,6 +3389,7 @@ class GazeborosEnv(gym.Env):
 
     def calculate_rechability_derivite(self, x, y, v, theta):
 
+<<<<<<< HEAD
         get_idx = lambda x: int(math.floor(x))
         pos_norm = GazeborosEnv.normalize((x, y), self.robot.max_rel_pos_range, True)
         orientation_norm = GazeborosEnv.normalize(theta, math.pi, True)
@@ -1887,6 +3425,52 @@ class GazeborosEnv(gym.Env):
         rospy.loginfo("d_v: {:0.5f} W: {:0.5f} v {:0.1f}".format(derivative_v, derivative_theta, v))
         action = [0,0]
         if v<1:
+=======
+        def get_idx(x): return int(math.floor(x))
+        pos_norm = GazeborosEnv.normalize(
+            (x, y), self.robot.max_rel_pos_range, True)
+        orientation_norm = GazeborosEnv.normalize(theta, math.pi, True)
+        velocity_norm = GazeborosEnv.normalize(
+            v, self.robot.max_linear_vel, True)
+        x_idx = get_idx(pos_norm[0]*(self.reachabilit_value.shape[0]-1))
+        y_idx = get_idx(pos_norm[1]*(self.reachabilit_value.shape[1]-1))
+        orientation_idx = get_idx(
+            orientation_norm * (self.reachabilit_value.shape[3] - 1))
+        v_idx = get_idx(velocity_norm * (self.reachabilit_value.shape[2]-1))
+
+        rospy.loginfo("x: {} y: {} theta {}".format(
+            x_idx, y_idx, orientation_idx))
+        v_idx = max(min(v_idx, self.reachabilit_value.shape[2]-2), 0)
+        orientation_idx = max(
+            min(orientation_idx, self.reachabilit_value.shape[3]-2), 0)
+        x_idx = max(min(x_idx, self.reachabilit_value.shape[0]-1), 0)
+        y_idx = max(min(y_idx, self.reachabilit_value.shape[1]-1), 0)
+
+        derivative_v = (self.reachabilit_value[x_idx, y_idx, v_idx+1, orientation_idx] -
+                        self.reachabilit_value[x_idx, y_idx, v_idx, orientation_idx])/2
+
+        derivative_theta = (self.reachabilit_value[x_idx, y_idx, v_idx, orientation_idx+1] -
+                            self.reachabilit_value[x_idx, y_idx, v_idx, orientation_idx])/2
+
+        rospy.loginfo("x: {} y: {} theta {}".format(
+            x_idx, y_idx, orientation_idx))
+        return derivative_v, derivative_theta, self.reachabilit_value[x_idx, y_idx, v_idx, orientation_idx]
+
+    def reachability_action(self):
+        relative = GazeborosEnv.get_relative_position(
+            self.robot.get_pos(), self.person)
+        orientation = GazeborosEnv.wrap_pi_to_pi(
+            self.robot.get_orientation() - self.person.get_orientation())
+        print(np.rad2deg(orientation), np.rad2deg(
+            self.person.get_orientation()), np.rad2deg(self.robot.get_orientation()))
+        velocity = self.robot.get_velocity()[0]
+        derivative_v, derivative_theta, v = self.calculate_rechability_derivite(
+            relative[0], relative[1], velocity, orientation)
+        rospy.loginfo("d_v: {:0.5f} W: {:0.5f} v {:0.1f}".format(
+            derivative_v, derivative_theta, v))
+        action = [0, 0]
+        if v < 1:
+>>>>>>> MCTS
             if derivative_v > 0:
                 action[0] = 1
             else:
@@ -1899,11 +3483,15 @@ class GazeborosEnv(gym.Env):
         return action
 
 
+<<<<<<< HEAD
 
 
 
 
 #def read_bag():
+=======
+# def read_bag():
+>>>>>>> MCTS
 #    gazeboros_n = GazeborosEnv()
 #    gazeboros_n.set_agent(0)
 #
@@ -1912,24 +3500,40 @@ class GazeborosEnv(gym.Env):
 #    gazeboros_n.save_log()
 #    print("done")
 
+<<<<<<< HEAD
 #read_bag()
+=======
+# read_bag()
+>>>>>>> MCTS
 
 def test():
     gazeboros_env = GazeborosEnv()
     gazeboros_env.set_agent(0)
     step = 0
     while (True):
+<<<<<<< HEAD
         step +=1
         #action = gazeboros_env.get_supervised_action()
         #action = gazeboros_env.reachability_action()
         #gazeboros_env.step(action)
         rel_person = GazeborosEnv.get_relative_heading_position(gazeboros_env.robot, gazeboros_env.person)[1]
         relative_pos2 = GazeborosEnv.get_relative_position(gazeboros_env.robot.get_pos(), gazeboros_env.robot.relative)
+=======
+        step += 1
+        # action = gazeboros_env.get_supervised_action()
+        # action = gazeboros_env.reachability_action()
+        # gazeboros_env.step(action)
+        rel_person = GazeborosEnv.get_relative_heading_position(
+            gazeboros_env.robot, gazeboros_env.person)[1]
+        relative_pos2 = GazeborosEnv.get_relative_position(gazeboros_env.robot.get_pos(
+        ), gazeboros_env.robot.relative)  # robot relative to human
+>>>>>>> MCTS
         orientation1 = np.rad2deg(np.arctan2(rel_person[1], rel_person[0]))
         distance = math.hypot(relative_pos2[0], relative_pos2[1])
 
         heading_robot = gazeboros_env.robot.state_["orientation"]
         heading_person = gazeboros_env.person.state_["orientation"]
+<<<<<<< HEAD
         heading_relative = GazeborosEnv.wrap_pi_to_pi(heading_robot-heading_person)
         orientation_heading = np.rad2deg(heading_relative)
         #print (f"ob: {gazeboros_env.get_observation()}")
@@ -1948,3 +3552,26 @@ def test():
 
 
 #test()
+=======
+        heading_relative = GazeborosEnv.wrap_pi_to_pi(
+            heading_robot-heading_person)
+        orientation_heading = np.rad2deg(heading_relative)
+        #print (f"ob: {gazeboros_env.get_observation()}")
+        print(f"reward: {gazeboros_env.get_reward()}")
+        print(f"pos: {rel_person} vs {relative_pos2}")
+        print(
+            f"orientation_h: {orientation_heading} dist: {distance} orin: {orientation1}")
+        print(
+            f"orientation_robo: {np.rad2deg(heading_robot)} orintation pers: {np.rad2deg(heading_person)}")
+        print("\n\n")
+
+        # if step % 50==0:
+        #    print("reseting")
+        #    gazeboros_env.reset()
+
+        # gazeboros_env.visualize_observation()
+        rospy.sleep(1)
+
+
+# test()
+>>>>>>> MCTS
